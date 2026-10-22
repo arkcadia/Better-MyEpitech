@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Better MyEpitech",
+    "slug": "better-myepitech",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "eu.bettermyepitech.app",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": ["expo-secure-store", "expo-dev-client"]
+  }
+}

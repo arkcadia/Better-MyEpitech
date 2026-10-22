@@ -1,8 +1,8 @@
 # Architecture: Epitech student companion
 
-Date: 22 October 2026. Target: Android first. Status: planning document; Android login feasibility is unproven.
+Date: 22 October 2026. Target: Android first. Status: M0 login implementation candidate; Android login feasibility remains unproven.
 
-This is the implementation guide for a future coding agent. The current request authorizes this document, not application implementation. When implementation is requested, start with the login milestone below. Keep the rest of the product in scope, but do not build around an authentication method that has not worked on Android.
+This is the implementation guide for a future coding agent. The user has authorized implementing the login feature. Current code scope is M0; document/data collection and Google integration remain later milestones. Keep the rest of the product in scope, but do not build around an authentication method that has not worked on Android.
 
 ## 1. Product purpose and confirmed requirements
 
