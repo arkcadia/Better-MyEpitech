@@ -19,6 +19,10 @@ Date: 23 October 2026. Status: **experimental foundation; authenticated release 
 - Actual browser probe from `http://localhost:5173`: one read-only `/api/auth/verify` request using a deliberately invalid synthetic bearer returned a readable 401, `type: cors`. No valid credential or private response was used. This proves response access for that anonymous rejection only, not token acceptance, authenticated data or file hosts.
 - Public HTTP preflight for `POST /api/auth/token` from `http://localhost:5173`: 204 with `Access-Control-Allow-Origin: *`; server reflects requested allowed headers. No credentials sent. This header check alone is not authenticated browser CORS proof.
 
+## Email/password alternative
+
+The later user-authorized email/password candidate is available separately from the disabled-by-default Microsoft adapter. It posts directly to the school’s observed external-account endpoint and shares student/session verification. Its synthetic and browser UI evidence, ordinary Microsoft compatibility limits and pending real-account checks are in [email/password validation](../setup/email-password.md). It does not satisfy the Microsoft interoperability checklist below.
+
 ## Live checklist — pending
 
 - [ ] Create app-owned Microsoft registration and exact SPA redirect; tenant consent permits the student.

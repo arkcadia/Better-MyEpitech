@@ -21,6 +21,10 @@ npm run preview:web
 
 The production preview runs at **http://localhost:4173**. Production files are in `apps/web/dist`; the Android export still uses root `dist`. No deployment is configured or performed.
 
+## Email/password alternative
+
+**Connections → Use email and password** uses the school’s external-account endpoint directly. It is available without Microsoft configuration; support for ordinary student Microsoft credentials is unproven. It still requires verified student access and live CORS checks. See [email/password setup and validation](email-password.md).
+
 ## Configure a candidate Microsoft flow
 
 This is an **experimental feasibility adapter**, disabled by default. The school frontend exchanges a Microsoft ID token at its `/auth/token` endpoint. That does **not** prove its server will accept a token issued for Better MyEpitech’s own client ID. A successful Microsoft sign-in alone never displays a connected school account: school token exchange, verified student role and a matching own-profile identity must all succeed.

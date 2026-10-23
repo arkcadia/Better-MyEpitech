@@ -17,7 +17,7 @@ export function loginConfiguration(
   });
   if (env.VITE_EXPERIMENTAL_SCHOOL_LOGIN !== "true") {
     return blocked(
-      "Web school sign-in needs an app-owned Microsoft registration and a live validation. You can explore the preview now.",
+      "Microsoft sign-in needs an app-owned Microsoft registration and live validation. Email/password is a separate candidate for accounts that support the school’s external sign-in.",
     );
   }
   const clientId = env.VITE_MICROSOFT_CLIENT_ID;

@@ -1,4 +1,5 @@
 import { DocumentLibrary } from "./documents/DocumentLibrary";
+import { PasswordSignIn } from "./auth/PasswordSignIn";
 import { previewDocuments } from "./documents/preview";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { timetableWindow } from "../../../src/application/studentDataManager";
@@ -65,6 +66,7 @@ export function App() {
   const range = useMemo(() => timetableWindow(offset), [offset]);
   const account = session.student?.login ?? null;
   const connected = Boolean(account);
+  const sessionBusy = ["restoring", "connecting", "checking", "refreshing", "disconnecting"].includes(session.status);
   useEffect(() => {
     if (account && !preview) void runtime.data.refresh(range.from, range.to);
   }, [account, preview, range]);
@@ -74,6 +76,7 @@ export function App() {
       runtime.documents.cancel();
       runtime.session.suspend();
       void runtime.signIn?.cancel();
+      void runtime.session.disconnect();
     };
     window.addEventListener("pagehide", clear);
     return () => window.removeEventListener("pagehide", clear);
@@ -219,9 +222,7 @@ export function App() {
           )}
           {(session.issue || signIn.issue) && (
             <div className="notice error" role="alert">
-              {signIn.issue ?? session.issue?.message} Web login is
-              experimental; Microsoft consent alone does not establish school
-              access.
+              {signIn.issue ?? session.issue?.message}
             </div>
           )}
           {!preview && !connected && page !== "connections" && (
@@ -245,8 +246,8 @@ export function App() {
                   </button>
                 </div>
                 <p className="fine-print">
-                  School web sign-in requires setup and has not been validated
-                  yet.
+                  School web sign-in has not been validated yet. Microsoft
+                  requires setup; email/password is limited to supported accounts.
                 </p>
               </div>
               <div className="welcome-art" aria-hidden="true">
@@ -296,7 +297,7 @@ export function App() {
                 <div className="actions">
                   <button
                     className="primary"
-                    disabled={!runtime.configuration.ready || signIn.busy}
+                    disabled={!runtime.configuration.ready || signIn.busy || sessionBusy}
                     onClick={beginSignIn}
                   >
                     {signIn.busy
@@ -319,10 +320,14 @@ export function App() {
                     </button>
                   )}
                 </div>
+                {!connected && <PasswordSignIn session={runtime.session} busy={sessionBusy}
+                  disabled={signIn.busy} onBegin={() => {
+                    setPreview(false); setQuery(""); setOffset(0);
+                  }} />}
                 <p className="fine-print">
-                  Sign-in happens at Microsoft. This app never asks for your
-                  school password. This web session ends on reload; signing out
-                  here does not sign you out of Microsoft.
+                  Microsoft sign-in happens at Microsoft. The alternative
+                  email/password flow goes directly to MyEpitech. This web
+                  session ends on reload; signing out here does not sign you out of Microsoft.
                 </p>
                 <details>
                   <summary>Setup and current limits</summary>

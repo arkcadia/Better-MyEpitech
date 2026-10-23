@@ -4,6 +4,7 @@ import {
   parseCredentials,
   parseStoredSession,
   safeAuthError,
+  validatePasswordSignIn,
   type Credentials,
   type EpitechAuthApi,
   type SessionVault,
@@ -21,7 +22,7 @@ export interface SessionSnapshot {
 }
 
 const emptySnapshot = (): SessionSnapshot => ({ status: 'disconnected', student: null, issue: null, lastVerifiedAt: null, refreshCount: 0 });
-const invalidSession = (error: AuthError) => ['unauthorized', 'forbidden', 'not_student', 'identity_mismatch', 'contract'].includes(error.code);
+const invalidSession = (error: AuthError) => ['unauthorized', 'forbidden', 'not_student', 'identity_mismatch', 'contract', 'invalid_credentials'].includes(error.code);
 
 async function waitFor<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) throw new AuthError('cancelled');
@@ -155,6 +156,28 @@ export class SessionManager {
       await this.verifyCurrent(generation);
     } catch (error) {
       await this.fail(error, generation, true);
+    }
+  }
+
+  /** Passwords are used only for this request, never stored in the vault or snapshot. */
+  async connectWithPassword(email: string, password: string): Promise<void> {
+    if (['restoring', 'connecting', 'checking', 'refreshing', 'disconnecting'].includes(this.snapshot.status)) return;
+    const generation = this.begin('connecting');
+    try {
+      validatePasswordSignIn(email, password);
+      if (!this.api.signInWithPassword) throw new AuthError('contract');
+      await this.store(() => this.vault.clear());
+      this.assertCurrent(generation);
+      const pending = this.api.signInWithPassword(email, password, this.controller.signal);
+      password = '';
+      const credentials = await pending;
+      this.assertCurrent(generation);
+      this.credentials = parseCredentials(credentials);
+      await this.verifyCurrent(generation);
+    } catch (error) {
+      await this.fail(error, generation, true);
+    } finally {
+      password = '';
     }
   }
 

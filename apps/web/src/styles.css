@@ -1030,3 +1030,9 @@ select:focus-visible {
 .download-link:hover {
   color: white;
 }
+
+.password-sign-in { margin-top: 24px; padding-top: 20px; border-top: 1px solid #dce1d4; }
+.password-sign-in fieldset { border: 0; padding: 0; margin: 16px 0; display: grid; gap: 12px; min-width: 0; }
+.password-sign-in label { font-size: 13px; font-weight: 600; }
+.password-sign-in input { width: 100%; box-sizing: border-box; min-height: 48px; padding: 12px; border: 1px solid #9da993; border-radius: 8px; background: white; color: #253627; font: inherit; font-size: 16px; }
+.password-sign-in input:focus-visible { outline: 3px solid #42835b; outline-offset: 2px; }

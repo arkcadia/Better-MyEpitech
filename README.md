@@ -67,3 +67,7 @@ npx expo prebuild --platform android --no-install
 Tests use synthetic data and fake adapters. CI repeats these checks and compiles an x86_64 emulator development build, including the local Google Identity Services module. Native compilation is separate from actually installing and signing in.
 
 Keep personal records, tokens, full OAuth URLs, screenshots of student data, downloaded coursework and recovered school frontend bundles out of commits. A project license is still undecided; starter attribution remains in `docs/third-party/expo-template-LICENSE.txt`. Known dependency advisories are recorded in the validation documents; do not force an obsolete SDK downgrade to hide them.
+
+### Email/password alternative
+
+Web Connections and the Android sign-in screen now offer **Use email and password** through the school’s external-account endpoint. Ordinary Microsoft student credential support remains unproven; Microsoft-only accounts must keep using Microsoft/the portal. The app never saves the password and still requires a verified student profile. See [setup and live-validation limits](docs/setup/email-password.md).

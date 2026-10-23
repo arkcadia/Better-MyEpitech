@@ -7,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionManager, type SessionStatus } from './src/application/sessionManager';
 import { PortalSignIn } from './src/features/auth/PortalSignIn';
+import { PasswordSignIn } from './src/features/auth/PasswordSignIn';
 import { SchoolOverview } from './src/features/school/SchoolOverview';
 import { HttpEpitechAuthApi } from './src/providers/epitech/api';
 import { SecureSessionVault } from './src/storage/secureSessionVault';
@@ -80,6 +81,7 @@ function LoginApp() {
           {snapshot.status !== 'connected' && !busy ? (
             <Action label="Connect Epitech" onPress={() => setPortalOpen(true)} />
           ) : null}
+          {!snapshot.student ? <PasswordSignIn session={session} busy={busy} disabled={portalOpen} /> : null}
           {snapshot.status === 'connected' ? (
             <>
               <Action label="Check connection" onPress={() => void session.checkConnection()} />

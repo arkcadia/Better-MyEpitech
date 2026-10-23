@@ -4,6 +4,7 @@ import {
   isRecord,
   isToken,
   normalizedLogin,
+  validatePasswordSignIn,
   type Credentials,
   type EpitechAuthApi,
   type SchoolIdentity,
@@ -59,6 +60,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
     accessToken?: string,
     refreshToken?: string,
     rawResponse = false,
+    passwordSignIn?: { email: string; password: string },
   ): Promise<unknown> {
     if (signal.aborted) throw new AuthError('cancelled');
     const controller = new AbortController();
@@ -71,28 +73,35 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
     }, this.timeoutMs);
     try {
       const response = await (rawResponse ? this.binaryFetcher : this.fetcher)(`${EPITECH_API}${path}`, {
-        method: refreshToken ? 'POST' : 'GET',
+        method: refreshToken || passwordSignIn ? 'POST' : 'GET',
         headers: {
           Accept: 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-          ...(refreshToken ? { 'Content-Type': 'application/json' } : {}),
+          ...(refreshToken || passwordSignIn ? { 'Content-Type': 'application/json' } : {}),
         },
-        ...(refreshToken ? { body: JSON.stringify({ refresh_token: refreshToken }) } : {}),
+        ...(passwordSignIn
+          ? { body: JSON.stringify(passwordSignIn) }
+          : refreshToken ? { body: JSON.stringify({ refresh_token: refreshToken }) } : {}),
         redirect: 'error',
         credentials: 'omit',
         cache: 'no-store',
+        referrerPolicy: 'no-referrer',
         signal: controller.signal,
       });
       if (signal.aborted) throw new AuthError('cancelled');
       if (timedOut) throw new AuthError('timeout');
       if (response.url && response.url !== `${EPITECH_API}${path}`) throw new AuthError('contract');
+      if (passwordSignIn && [400, 401, 403].includes(response.status)) throw new AuthError('invalid_credentials');
       if (response.status === 401) throw new AuthError('unauthorized');
       if (response.status === 403) throw new AuthError('forbidden');
       if (response.status === 429 || response.status >= 500) throw new AuthError('server');
       if (!response.ok) throw new AuthError('contract');
       if (rawResponse) return response;
       try {
-        return await response.json() as unknown;
+        const value: unknown = await response.json();
+        if (signal.aborted) throw new AuthError('cancelled');
+        if (timedOut) throw new AuthError('timeout');
+        return value;
       } catch {
         throw new AuthError('contract');
       }
@@ -106,6 +115,17 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
       clearTimeout(timer);
       signal.removeEventListener('abort', abort);
     }
+  }
+
+  /** The school's external-account flow; Microsoft-only account support is not implied. */
+  async signInWithPassword(email: string, password: string, signal: AbortSignal): Promise<Credentials> {
+    validatePasswordSignIn(email, password);
+    const value = await this.request('/auth/external', signal, undefined, undefined, false,
+      { email: email.trim(), password });
+    if (!isRecord(value) || !isToken(value.access_token) || !isToken(value.refresh_token)) {
+      throw new AuthError('contract');
+    }
+    return { accessToken: value.access_token, refreshToken: value.refresh_token };
   }
 
   async verify(accessToken: string, signal: AbortSignal): Promise<SchoolIdentity> {
