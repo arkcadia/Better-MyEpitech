@@ -31,6 +31,7 @@ export interface EpitechAuthApi {
   verify(accessToken: string, signal: AbortSignal): Promise<SchoolIdentity>;
   ownProfile(accessToken: string, signal: AbortSignal): Promise<VerifiedStudent>;
   refresh(credentials: Credentials, signal: AbortSignal): Promise<Credentials>;
+  readSchoolFile?(path: string, accessToken: string, signal: AbortSignal): Promise<Response>;
   readSchool(path: string, accessToken: string, signal: AbortSignal): Promise<unknown>;
 }
 

@@ -1,3 +1,4 @@
+import { documentReadPath, schoolBinaryPath } from './documentPaths';
 import {
   AuthError,
   isRecord,
@@ -18,10 +19,12 @@ export type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
 /** Only observed student reads may receive the school bearer token. */
 export function schoolReadPath(path: string): string {
   if (typeof path !== 'string' || path.length > 2_048 || /[\\\s#]/.test(path)) throw new AuthError('contract');
+  const documentPath = documentReadPath(path);
+  if (documentPath) return documentPath;
   const [route = '', query = '', ...extra] = path.split('?');
   if (extra.length || !['/units/instances/projects', '/events'].includes(route)) throw new AuthError('contract');
   const params = new URLSearchParams(query);
-  const allowed = route === '/events' ? ['startDate', 'endDate', 'registered'] : ['page', 'limit', 'registeredOnly'];
+  const allowed = route === '/events' ? ['startDate', 'endDate', 'registered'] : ['page', 'limit', 'registeredOnly', 'schoolYear'];
   for (const key of params.keys()) {
     if (!allowed.includes(key) || params.getAll(key).length !== 1) throw new AuthError('contract');
   }
@@ -34,9 +37,9 @@ export function schoolReadPath(path: string): string {
         Date.parse(end) - Date.parse(start) > 32 * 86_400_000 ||
         (params.has('registered') && params.get('registered') !== 'me')) throw new AuthError('contract');
   } else {
-    for (const key of ['page', 'limit']) {
+    for (const key of ['page', 'limit', 'schoolYear']) {
       const value = params.get(key);
-      if (value !== null && (!/^[1-9]\d*$/.test(value) || Number(value) > (key === 'limit' ? 1_000 : 100_000))) throw new AuthError('contract');
+      if (value !== null && (!/^[1-9]\d*$/.test(value) || Number(value) > (key === 'limit' ? 1_000 : key === 'schoolYear' ? 9_999 : 100_000))) throw new AuthError('contract');
     }
     if (params.has('registeredOnly') && !['true', 'false'].includes(params.get('registeredOnly')!)) throw new AuthError('contract');
   }
@@ -47,6 +50,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
   constructor(
     private readonly fetcher: Fetcher = fetch,
     private readonly timeoutMs = 20_000,
+    private readonly binaryFetcher: Fetcher = fetcher,
   ) {}
 
   private async request(
@@ -54,6 +58,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
     signal: AbortSignal,
     accessToken?: string,
     refreshToken?: string,
+    rawResponse = false,
   ): Promise<unknown> {
     if (signal.aborted) throw new AuthError('cancelled');
     const controller = new AbortController();
@@ -65,7 +70,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
       controller.abort();
     }, this.timeoutMs);
     try {
-      const response = await this.fetcher(`${EPITECH_API}${path}`, {
+      const response = await (rawResponse ? this.binaryFetcher : this.fetcher)(`${EPITECH_API}${path}`, {
         method: refreshToken ? 'POST' : 'GET',
         headers: {
           Accept: 'application/json',
@@ -75,6 +80,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
         ...(refreshToken ? { body: JSON.stringify({ refresh_token: refreshToken }) } : {}),
         redirect: 'error',
         credentials: 'omit',
+        cache: 'no-store',
         signal: controller.signal,
       });
       if (signal.aborted) throw new AuthError('cancelled');
@@ -84,6 +90,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
       if (response.status === 403) throw new AuthError('forbidden');
       if (response.status === 429 || response.status >= 500) throw new AuthError('server');
       if (!response.ok) throw new AuthError('contract');
+      if (rawResponse) return response;
       try {
         return await response.json() as unknown;
       } catch {
@@ -127,6 +134,10 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
       throw new AuthError('contract');
     }
     return { accessToken: value.access_token, refreshToken: value.refresh_token ?? credentials.refreshToken };
+  }
+
+  async readSchoolFile(path: string, accessToken: string, signal: AbortSignal): Promise<Response> {
+    return await this.request(schoolBinaryPath(path), signal, accessToken, undefined, true) as Response;
   }
 
   readSchool(path: string, accessToken: string, signal: AbortSignal): Promise<unknown> {
