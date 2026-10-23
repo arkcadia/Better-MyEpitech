@@ -22,11 +22,11 @@ describe('school email/password transport', () => {
       body: JSON.stringify({ email: student.login, password }),
     }));
   });
-  it.each([400, 401, 403])('uses a sanitized sign-in rejection for HTTP %s, without retrying', async status => {
+  it.each([400, 401, 403] as const)('preserves HTTP %s without blaming the password, exposing provider text or retrying', async status => {
     const transport = vi.fn(async () => new Response('private provider error', { status }));
     const api = new HttpEpitechAuthApi(transport);
     await expect(api.signInWithPassword(student.login, password, new AbortController().signal))
-      .rejects.toMatchObject({ code: 'invalid_credentials', message: new AuthError('invalid_credentials').message });
+      .rejects.toMatchObject({ code: 'invalid_credentials', httpStatus: status, message: new AuthError('invalid_credentials', status).message });
     expect(transport).toHaveBeenCalledOnce();
   });
   it.each([

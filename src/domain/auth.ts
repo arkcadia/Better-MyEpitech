@@ -60,14 +60,14 @@ const messages: Record<AuthErrorCode, string> = {
   not_student: 'This app currently supports verified Epitech student accounts.',
   identity_mismatch: 'The school responses do not identify the same student. Please sign in again.',
   storage: 'The session could not be saved or removed securely. Please try again.',
-  invalid_credentials: 'Email/password sign-in was rejected. Check your details, or use Microsoft if your account requires it.',
+  invalid_credentials: 'MyEpitech rejected external-account sign-in. This does not prove your password is wrong: Microsoft-only accounts may not support this endpoint. Use Microsoft if that is your normal school sign-in.',
   invalid_input: 'Enter a valid email address and a password.',
   cancelled: 'The connection attempt was cancelled.',
 };
 
 export class AuthError extends Error {
-  constructor(readonly code: AuthErrorCode) {
-    super(messages[code]);
+  constructor(readonly code: AuthErrorCode, readonly httpStatus?: 400 | 401 | 403) {
+    super(`${messages[code]}${httpStatus ? ` (HTTP ${httpStatus})` : ''}`);
     this.name = 'AuthError';
   }
 }

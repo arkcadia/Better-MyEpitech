@@ -91,7 +91,9 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
       if (signal.aborted) throw new AuthError('cancelled');
       if (timedOut) throw new AuthError('timeout');
       if (response.url && response.url !== `${EPITECH_API}${path}`) throw new AuthError('contract');
-      if (passwordSignIn && [400, 401, 403].includes(response.status)) throw new AuthError('invalid_credentials');
+      if (passwordSignIn && (response.status === 400 || response.status === 401 || response.status === 403)) {
+        throw new AuthError('invalid_credentials', response.status);
+      }
       if (response.status === 401) throw new AuthError('unauthorized');
       if (response.status === 403) throw new AuthError('forbidden');
       if (response.status === 429 || response.status >= 500) throw new AuthError('server');

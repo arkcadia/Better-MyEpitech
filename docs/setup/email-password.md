@@ -8,7 +8,7 @@ The client sends the password directly to the exact HTTPS school endpoint with n
 
 After exchange, the existing session manager must verify a student role and matching own-profile login before exposing or saving a connection. A successful password exchange for staff/external-only accounts does not grant app access. Aliases are allowed: the verified school login, rather than the typed address, scopes the account and its data. Web tokens remain in memory; Android saves only the verified school session in SecureStore. Renewal uses the school refresh token, never a retained password.
 
-Rejected credentials show a sanitized error and a Microsoft alternative; the app does not automatically repeat the password request. Cancellation/sign-out invalidates late completions, and duplicate submissions do not send parallel attempts.
+Rejected requests show a sanitized error, the school's HTTP status (400/401/403) and a Microsoft alternative; the app does not automatically repeat the password request. This response alone does not prove that the password is incorrect or establish the exact account-policy restriction. No raw provider message, credential or response body is displayed. If the official website redirects the account to Microsoft, use that sign-in method; this external-account endpoint has not been proven compatible with it. Cancellation/sign-out invalidates late completions, and duplicate submissions do not send parallel attempts.
 
 ## Validation evidence
 
