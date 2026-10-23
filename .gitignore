@@ -5,8 +5,8 @@ node_modules/
 .tmp/
 dist/
 coverage/
-android/
-ios/
+/android/
+/ios/
 *.tgz
 *.log
 *.jks

@@ -80,7 +80,7 @@ class BetterGoogleAuthModule : Module() {
     pending = null
     val token = result.accessToken
     if (token.isNullOrBlank()) promise.reject("ERR_GOOGLE_AUTHORIZATION", "Google authorization did not return an access token.", null)
-    else promise.resolve(mapOf("accessToken" to token, "scopes" to result.grantedScopes.map { it.scopeUri }))
+    else promise.resolve(mapOf("accessToken" to token, "scopes" to result.grantedScopes))
   }
 
   private fun fail(code: String) {
