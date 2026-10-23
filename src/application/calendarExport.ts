@@ -44,14 +44,17 @@ function canonicalEntry(entry: CalendarEntry) {
       if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date))) query.set(key, date);
     }
   }
-  source.search = query.toString(); source.hash = '';
+  // React Native's URL implementation exposes hash as getter-only. Rebuild the
+  // validated navigation link without assigning any URL property.
+  const search = query.toString();
+  const sourceUrl = `${source.origin}${source.pathname}${search ? `?${search}` : ''}`;
   const plain = (value: string) => value.replace(/<[^>]*>/g, '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
   return {
     summary: plain(entry.title),
-    description: `${plain(entry.description ?? '').slice(0, 6000)}\n\nSource: ${source.href}\nExported manually from Better MyEpitech.`.trim(),
+    description: `${plain(entry.description ?? '').slice(0, 6000)}\n\nSource: ${sourceUrl}\nExported manually from Better MyEpitech.`.trim(),
     location: plain(entry.location ?? '').slice(0, 1024),
     start: entry.start, end: entry.end,
-    source: { title: 'My Epitech', url: source.href },
+    source: { title: 'My Epitech', url: sourceUrl },
   };
 }
 

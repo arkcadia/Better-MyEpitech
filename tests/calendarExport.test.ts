@@ -159,4 +159,20 @@ describe('explicit account-scoped Google Calendar export', () => {
     expect(f.api.insertEvent.mock.calls[0]![2].source.url).toBe('https://my.epitech.eu/planning?eventId=8&start=2026-10-23&end=2026-10-29');
     expect(JSON.stringify(f.api.insertEvent.mock.calls)).not.toContain('secret');
   });
+  it('sanitizes links with getter-only URL properties as exposed by React Native', async () => {
+    const BaseURL = globalThis.URL;
+    class NativeStyleURL extends BaseURL {
+      override get hash() { return super.hash; }
+      override get search() { return super.search; }
+    }
+    vi.stubGlobal('URL', NativeStyleURL);
+    try {
+      const f = setup(); await f.manager.connect(school);
+      await f.manager.exportEntry(school, { ...entry, sourceUrl: 'https://my.epitech.eu/planning?eventId=8&start=2026-10-23&token=secret#sensitive-fragment' });
+      expect(f.manager.getSnapshot().lastExport?.result).toBe('created');
+      expect(f.api.insertEvent.mock.calls[0]![2].source.url).toBe('https://my.epitech.eu/planning?eventId=8&start=2026-10-23');
+      expect(JSON.stringify(f.api.insertEvent.mock.calls)).not.toContain('secret');
+      expect(JSON.stringify(f.api.insertEvent.mock.calls)).not.toContain('sensitive-fragment');
+    } finally { vi.unstubAllGlobals(); }
+  });
 });

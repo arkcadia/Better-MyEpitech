@@ -16,7 +16,7 @@ The tests cover account-scoped data collection, bounded authenticated GET routes
 | Check | Outcome |
 | --- | --- |
 | TypeScript | Passed. |
-| Synthetic automated suite | Passed: 166 tests in 9 files. |
+| Synthetic automated suite | Passed: 167 tests in 9 files. |
 | Android Hermes export | Passed. |
 | Expo Android prebuild | Passed. |
 | Local Google module autolinking | Detected correct Android module. |
