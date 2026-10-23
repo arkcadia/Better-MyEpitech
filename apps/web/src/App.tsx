@@ -1,3 +1,5 @@
+import { DocumentLibrary } from "./documents/DocumentLibrary";
+import { previewDocuments } from "./documents/preview";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { timetableWindow } from "../../../src/application/studentDataManager";
 import type { CalendarEntry } from "../../../src/domain/calendar";
@@ -5,11 +7,12 @@ import { runtime } from "./runtime";
 import { previewData } from "./data/preview";
 import { entryTime, formatMoment, safeSchoolLink } from "./format";
 
-type Page = "overview" | "projects" | "timetable" | "connections";
+type Page = "overview" | "projects" | "timetable" | "documents" | "connections";
 const pages: { id: Page; label: string; mark: string }[] = [
   { id: "overview", label: "Overview", mark: "◈" },
   { id: "projects", label: "Projects", mark: "▤" },
   { id: "timetable", label: "Timetable", mark: "◷" },
+  { id: "documents", label: "Documents", mark: "▧" },
   { id: "connections", label: "Connections", mark: "↗" },
 ];
 const idleSignIn = { busy: false, issue: null };
@@ -68,6 +71,7 @@ export function App() {
   useEffect(() => {
     const clear = () => {
       runtime.data.suspend();
+      runtime.documents.cancel();
       runtime.session.suspend();
       void runtime.signIn?.cancel();
     };
@@ -100,6 +104,7 @@ export function App() {
     setQuery("");
     setOffset(0);
     runtime.data.suspend();
+    runtime.documents.cancel();
     void runtime.signIn?.cancel();
     void runtime.session.disconnect();
   };
@@ -196,7 +201,9 @@ export function App() {
                     ? "Keep your next submission in sight."
                     : page === "timetable"
                       ? "Know what’s coming up, and where to be."
-                      : "Connect your school. Choose what to share with your tools."}
+                      : page === "documents"
+                        ? "Find your files. Keep only what’s new."
+                        : "Connect your school. Choose what to share with your tools."}
               </p>
             </div>
             <span className="heading-symbol" aria-hidden="true">
@@ -258,7 +265,13 @@ export function App() {
               </div>
             </section>
           )}
-          {page === "connections" ? (
+          {page === "documents" ? (
+            <DocumentLibrary
+              manager={preview ? previewDocuments : runtime.documents}
+              preview={preview}
+              connected={connected}
+            />
+          ) : page === "connections" ? (
             <div className="connection-grid">
               <section className="panel">
                 <span className="connection-icon">e.</span>
@@ -337,8 +350,8 @@ export function App() {
                 <hr />
                 <h3>Documents & Google Drive</h3>
                 <p>
-                  Document collection and Drive export remain on the roadmap for
-                  both apps.
+                  Device ZIP downloads are available in Documents. Google Drive
+                  export remains on the roadmap for both apps.
                 </p>
               </section>
             </div>

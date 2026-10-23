@@ -226,7 +226,18 @@ export class SessionManager {
   }
 
   /** Authenticated student reads never expose credentials to screens or collectors. */
-  async readSchool(path: string, callerSignal: AbortSignal): Promise<unknown> {
+  readSchool(path: string, callerSignal: AbortSignal): Promise<unknown> {
+    return this.authenticatedRead((token, signal) => this.api.readSchool(path, token, signal), callerSignal);
+  }
+
+  readSchoolFile(path: string, callerSignal: AbortSignal): Promise<Response> {
+    return this.authenticatedRead((token, signal) => {
+      if (!this.api.readSchoolFile) throw new AuthError('contract');
+      return this.api.readSchoolFile(path, token, signal);
+    }, callerSignal);
+  }
+
+  private async authenticatedRead<T>(operation: (token: string, signal: AbortSignal) => Promise<T>, callerSignal: AbortSignal): Promise<T> {
     const generation = this.generation;
     const login = this.boundLogin;
     const sessionSignal = this.controller.signal;
@@ -254,7 +265,7 @@ export class SessionManager {
       const attemptedToken = this.credentials!.accessToken;
       const attemptedRefreshCount = this.snapshot.refreshCount;
       try {
-        const result = await this.api.readSchool(path, attemptedToken, controller.signal);
+        const result = await operation(attemptedToken, controller.signal);
         assertConnected();
         return result;
       } catch (error) {
@@ -271,7 +282,7 @@ export class SessionManager {
         assertConnected();
       }
       try {
-        const result = await this.api.readSchool(path, this.credentials!.accessToken, controller.signal);
+        const result = await operation(this.credentials!.accessToken, controller.signal);
         assertConnected();
         return result;
       } catch (error) {

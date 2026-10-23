@@ -44,7 +44,7 @@ Local sign-out clears this app’s school session and data; it does not claim se
 
 - App-owned registration/tenant consent and Epitech acceptance of its ID-token audience.
 - Real browser school login/MFA, renewal, account switching, logout and authenticated API collection.
-- Authenticated CORS on all used endpoints and file-host byte access for future documents/Drive.
+- Authenticated CORS on all used endpoints and file-host byte access for documents/ZIPs and future Drive. See [documents setup](documents.md).
 - Browser Google OAuth/linking, protected credential handling and durable duplicate-prevention metadata. **Google Calendar export is not available on web yet**; Android’s native adapter remains separate. No fake connected account or placeholder export button is offered.
 - Hosting/security-header configuration, supported browser matrix and any decision to introduce a BFF. A BFF requires a legitimate login path and a separate custody/retention/CSRF design.
 

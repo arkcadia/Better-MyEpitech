@@ -8,7 +8,7 @@ Date: 23 October 2026. Status: **experimental foundation; authenticated release 
 - Shared school session verification/renewal and paginated/date-window collectors; memory-only web credentials and account-scoped snapshots.
 - Disabled-by-default app-owned Microsoft SPA popup adapter with a dedicated MSAL 5 redirect bridge. No school credentials, school client registration or tokens are bundled.
 - Explicit sample-data workspace for UI evaluation; projects/search/registered-project filter, timetable ranges, source timezone/all-day labels and cancellations. Mocked evidence never establishes provider feasibility.
-- Google web linking/export, document collection and Drive export remain unimplemented. Android features and build entry points remain available.
+- Google web linking/export and Drive remain unimplemented. Document collection/ZIP candidates are recorded separately in [document validation](documents.md). Android features and build entry points remain available.
 
 ## Evidence recorded
 

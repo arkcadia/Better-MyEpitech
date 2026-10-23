@@ -233,3 +233,58 @@ describe('school data transport boundary', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
+
+describe("account-bound binary attachment reads", () => {
+  it("uses the same verified identity, shared refresh owner and retry rules as JSON reads", async () => {
+    const base = fakeApi();
+    const readSchoolFile = vi.fn(async (_path: string, token: string) => {
+      if (token === credentials.accessToken)
+        throw new AuthError("unauthorized");
+      return new Response(new Uint8Array([0, 255]));
+    });
+    const session = new SessionManager(
+      { ...base, readSchoolFile },
+      new MemoryVault(),
+    );
+    await expect(
+      session.readSchoolFile("/students/follow-ups/1/attachment", signal()),
+    ).rejects.toMatchObject({ code: "unauthorized" });
+    await session.connectFromPortal(credentials);
+    const response = await session.readSchoolFile(
+      "/students/follow-ups/1/attachment",
+      signal(),
+    );
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([0, 255]);
+    expect(base.refresh).toHaveBeenCalledOnce();
+    expect(readSchoolFile).toHaveBeenLastCalledWith(
+      "/students/follow-ups/1/attachment",
+      renewed.accessToken,
+      expect.any(AbortSignal),
+    );
+  });
+  it("returns a streaming binary response only for an allowlisted own-account attachment path", async () => {
+    const transport = vi.fn(
+      async (_url: string, _init: RequestInit) =>
+        new Response(new Uint8Array([1])),
+    );
+    const api = new HttpEpitechAuthApi(transport);
+    const response = await api.readSchoolFile(
+      "/students/follow-ups/2/attachment",
+      credentials.accessToken,
+      signal(),
+    );
+    expect(response.body).not.toBeNull();
+    expect(transport).toHaveBeenCalledWith(
+      `${EPITECH_API}/students/follow-ups/2/attachment`,
+      expect.objectContaining({ redirect: "error", credentials: "omit" }),
+    );
+    await expect(
+      api.readSchoolFile(
+        "/students/other/follow-ups/2/attachment",
+        credentials.accessToken,
+        signal(),
+      ),
+    ).rejects.toMatchObject({ code: "contract" });
+    expect(transport).toHaveBeenCalledOnce();
+  });
+});
