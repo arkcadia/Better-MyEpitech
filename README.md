@@ -1,10 +1,23 @@
 # Better MyEpitech
 
-An independent Android companion for Epitech students. Connect your school account, browse accessible projects and deadlines, view the school timetable, and manually add selected dates to Google Calendar. The complete document/data and Google Drive roadmap remains in [architecture.md](architecture.md).
+An independent Android and web companion for Epitech students. Connect your school account, browse accessible projects and deadlines, view the school timetable, and manually add selected dates to Google Calendar. The complete document/data and Google Drive roadmap remains in [architecture.md](architecture.md).
 
 **Status:** implementation candidate. Automated tests and bundle checks do not prove real Android school sign-in, MFA, renewal, or Google authorization. See the separate [login](docs/validation/android-login.md) and [projects/calendar](docs/validation/projects-calendar.md) evidence records before treating this as release-ready.
 
-## Run on a PC or phone
+## Run the web preview on a PC
+
+Use Node.js 24 and npm; no Android SDK is needed:
+
+```sh
+npm ci
+npm run web
+```
+
+Open **http://localhost:5173** and choose **Explore the preview**. This uses clearly marked fictional data. Experimental Microsoft school sign-in requires an app-owned registration and remains unverified. See [web setup](docs/setup/web.md) and [web validation](docs/validation/web.md). Web Google linking/export is a later slice.
+
+Build with `npm run build:web`; serve the output locally with `npm run preview:web`. Android and web live on the same `main` and build separately.
+
+## Run Android on a PC or phone
 
 Use Node.js 24, npm, Java, the Android SDK and an Android emulator or USB-debugging-enabled phone. This app requires an Android development build.
 

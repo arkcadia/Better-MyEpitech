@@ -1,4 +1,4 @@
-name: Android companion checks
+name: Companion checks
 
 on:
   pull_request:
@@ -12,15 +12,15 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     env:
-      EXPO_NO_TELEMETRY: '1'
-      CI: '1'
+      EXPO_NO_TELEMETRY: "1"
+      CI: "1"
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
       - run: npm ci
       - run: npm run typecheck
@@ -32,3 +32,18 @@ jobs:
       - name: Compile emulator development build
         working-directory: android
         run: ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64
+
+  web:
+    name: Web build and typecheck
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck:web
+      - run: npm run build:web
