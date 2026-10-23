@@ -1,18 +1,20 @@
-# Architecture: Epitech student companion
+# Architecture: Epitech mobile and web companion
 
-Updated: 23 October 2026. Target: Android first. Status: login candidate plus authorized project/date/timetable and Google Calendar implementation; live Android validation remains pending.
+Updated: 23 October 2026. Targets: Android mobile and web, maintained together on `main`. Status: Android implementation candidate; web architecture planned and school web login unproven.
 
-This is the implementation guide for coding agents. On 23 October 2026 the user authorized continuing Android login validation and implementing ongoing projects with their dates/deadlines, the school timetable, and optional Google Calendar linking/export. Independently testable adapters and screens may proceed while interactive Android validation is pending. Do not present source-map contracts or mocked tests as live provider evidence. Document collection and Google Drive remain planned features outside this implementation session.
+This guide covers both versions of Better MyEpitech. The user has requested a shared repository containing mobile and web apps, shared business logic, and independent releases. This request authorizes architecture documentation only: do not restructure the repository, scaffold a web app, implement web authentication, or deploy anything as part of this update.
+
+The existing Android project includes school login, projects/deadlines, timetable collection and optional Google Calendar export candidates. The projects/calendar work is merged into `main`; 167 synthetic tests, Android bundling and native Android compilation passed. Real Android school login/MFA/refresh, live API coverage, configured Google authorization and live exports remain pending. Web login has not been established. Shared code and passing Android builds do not prove browser feasibility. Document collection and Google Drive remain required roadmap features for both platforms.
 
 ## 1. Product purpose and confirmed requirements
 
-Build an open-source mobile companion for Epitech students with an existing school account. It collects and centralizes the documents and data available through each student's normal school access, and provides explicit actions to export selected information to external tools. Epitech remains the source of truth.
+Build an open-source companion with Android mobile and web versions for Epitech students with an existing school account. It collects and centralizes the documents and data available through each student's normal school access, and provides explicit actions to export selected information to external tools. Epitech remains the source of truth.
 
 The app complements the existing school website. Centralizing data does not require recreating every website screen or school workflow.
 
 | ID | Confirmed requirement |
 | --- | --- |
-| FR-01 | Android is the first implementation and validation target. |
+| FR-01 | Android remains the first mobile implementation and validation target; a web version is also planned. |
 | FR-02 | The audience is Epitech students who already have an account. |
 | FR-03 | Establish a working student login without requiring school involvement or changes to school systems. |
 | FR-04 | Discover and retrieve every document the student can access on the website, across supported student-visible sources. Do not restrict collection to the personal Documents page. |
@@ -23,7 +25,11 @@ The app complements the existing school website. Centralizing data does not requ
 | FR-09 | Preserve the existing school's permissions. Use the signed-in student's access, including resources shared with that student. |
 | FR-10 | The codebase is intended to be open source. Keep personal data, credentials and downloaded school materials out of the public repository. |
 | FR-11 | Validate login and report its evidence accurately. The 23 October authorization permits project/timetable and Calendar implementation in parallel with pending interactive validation. |
-| FR-12 | Do not silently drop previously discussed features when narrowing the first milestone to login. |
+| FR-12 | Do not silently drop previously discussed features when narrowing a milestone or adding a platform. |
+| FR-13 | Provide a web version with the same student-data/document and export goals, subject to separately proven browser capabilities. |
+| FR-14 | Maintain both apps and their shared packages in the same repository and `main` branch; release them independently. |
+| FR-15 | Share domain models, collection rules and export policies; isolate platform-specific UI, login, storage and runtime integrations. |
+| FR-16 | Use descriptive branch names such as `docs/mobile-web-architecture`, `feat/web-login` or `fix/calendar-export`; do not use the `codex/` prefix. |
 
 Reading broad directory endpoints or guessing other students' identifiers is not the meaning of "every data available." The collection boundary is the signed-in student's normal website experience, including authorized shared course resources.
 
@@ -33,18 +39,23 @@ Separate the user's requirements from architecture defaults and unresolved choic
 
 | Decision | Status | Direction |
 | --- | --- | --- |
-| Android first, Epitech accounts, no school involvement | Confirmed | Required constraints. |
+| Android first, web target, Epitech accounts, no school involvement | Confirmed | Required constraints; web login feasibility is a separate gate. |
 | Google Calendar and Google Drive | Confirmed | First two external integrations. |
 | Epitech access from the app | Architecture default | Read school data; authentication is the necessary exception. School-side actions open the existing website. |
-| Mobile stack | Proposed baseline | React Native, TypeScript and Expo development builds; allow a small native Android adapter where identity SDKs require it. |
-| Data location | Proposed default, not explicitly chosen by user | On the student's device; no application backend or separate app account for the first release. |
+| Mobile stack | Existing baseline | React Native, TypeScript and Expo development builds, including a local native Google authorization module. |
+| Shared repository | Confirmed direction; migration not implemented | `apps/mobile`, `apps/web`, `packages/core`, `packages/epitech`, `packages/google` on `main`. |
+| Web stack | Proposed baseline | React and TypeScript; consider Next.js if same-origin server routes are required. Select the framework/deployment target after the web login feasibility decision. |
+| Workspace tooling | Proposed baseline | npm workspaces and the existing lockfile; avoid introducing a build orchestrator without a demonstrated need. |
+| Mobile data location | Default | Device-local data and protected native credentials; no mobile backend required by the current candidate. |
+| Web session/transport | Unresolved; conditional proposal | Prefer a same-origin backend-for-frontend (BFF) if server custody of tokens or server-side transport is needed. It does not solve school login by itself. |
+| Web retention | Proposed minimum | Session-bound data and explicit retention; no permanent hosted school archive or separate app account by default. |
 | Document bytes | Proposed default | Index all discovered documents; fetch bytes on open, download, offline save or export. Provide user-initiated batch retrieval. |
 | Export behavior | Proposed default; user has not settled update policy | Manual exports and manual updates. Keep the mapping needed for later automatic updates. |
 | Background operation | Proposed default | Refresh on launch/resume and user request; background work is optional and best effort. |
-| Cross-device synchronization | Unresolved / outside first release | Do not introduce a server or cloud backup implicitly. |
+| Cross-device synchronization | Unresolved / outside initial scope | A shared repository does not synchronize phone/browser data, sessions or export destinations. A web session service is not authorization for a cross-device archive. |
 | iOS | Future possibility | Keep domain code portable; no current requirement to deliver iOS. |
 | Other tool integrations | Future extension | Do not implement Notion, Todoist, direct GitHub linking or other connectors without a later requirement. |
-| Open-source license and app name | Unresolved | Set before public release; do not invent school endorsement or branding. |
+| Open-source license and public branding | Unresolved | Better MyEpitech is the current working name; choose a license before public release and do not imply school endorsement. |
 
 Use proposed defaults to write coherent code once implementation is authorized. Record a decision and its reason when changing one; do not turn these defaults into claims that the user explicitly selected them.
 
@@ -69,89 +80,100 @@ Observed frontend release: `3.65.0`. Observed API base: `https://my.epitech.eu/a
 | Dashboard, academic details, planning, projects, e-learning and units rendered after user sign-in | Authenticated desktop browser UI observation. |
 | Every catalog endpoint is accessible or current | Not established. |
 | Epitech accepts a Microsoft token issued to an independently registered app | Not established. |
-| A native Android app can receive a usable Epitech session without school changes | Not established. |
+| A native Android app can receive a usable Epitech session without school changes | Not established by live Android validation. |
+| An independent web origin can complete school login and receive a usable school session | Not investigated/proven. |
+| School APIs and document hosts allow browser requests from our web origin | Not established; verify CORS and credential behavior for each required operation. |
+| Android native compilation and synthetic tests | Passed for the merged Android candidate; no proof of school or Google runtime authorization. |
 | Anonymous callback checks proved a native callback works or fails | Not established. Both checks encountered `AADSTS50058` / missing login; they were inconclusive. |
 
 Source maps describe client expectations. Validate response shapes and behavior against actual student access before relying on them. Do not claim Android login works because the website loaded, an anonymous request returned HTTP 200, or a mocked test passed.
 
 ## 4. System shape
 
+Maintain one repository with two applications. Both live on `main`; branches describe changes, not permanent platform forks. Mobile and web have separate interfaces, identity adapters and release pipelines. Shared packages define behavior without importing either application's runtime.
+
 ```mermaid
 flowchart LR
-    School[My Epitech APIs] -->|Student-visible data| Adapter[Epitech adapter]
-    Login[School / Microsoft sign-in] -. Android handoff must be proven .-> Session[Session manager]
-    Session --> Adapter
-    Adapter --> Collect[Collection coordinator]
-    Collect --> Store[Local repositories and document storage]
-    Store --> UI[Android app]
-    UI -->|Add selected class| Calendar[Google Calendar connector]
-    UI -->|Export selected document| Drive[Google Drive connector]
-    Calendar --> GoogleCalendar[Student's Google Calendar]
-    Drive --> GoogleDrive[Student's Google Drive]
+    Mobile[Android app] --> Core[Shared domain and use cases]
+    Web[Web interface] --> Core
+    Core --> SchoolRules[Shared school schemas and collectors]
+    Core --> ExportRules[Shared Calendar and Drive policies]
+    Mobile --> MobilePorts[Native login, storage and Google adapters]
+    Web --> WebPorts[Browser adapters and optional same-origin BFF]
+    MobilePorts --> School[My Epitech APIs]
+    WebPorts -. proven school session required .-> School
+    MobilePorts --> Google[Student Google account]
+    WebPorts --> Google
 ```
 
-Use one mobile application with clear module boundaries. A monorepo, API gateway, job server, hosted database and microservices are unnecessary for the initial scope.
+This is a logical dependency/data-flow diagram, not a statement that browser code can directly reach every provider. If a BFF is selected, browser calls carry an opaque web session cookie and the server performs authorized provider operations. Mobile can continue accessing providers on-device. No gateway, general-purpose proxy or collection microservices are required by this design.
 
-Dependency direction:
+Dependency direction remains:
 
-`Screens -> application use cases -> domain contracts -> provider/storage adapters`
+`Platform UI -> application use cases -> domain contracts -> injected provider/storage adapters`
 
-Screens must not construct Epitech URLs, interpret raw API responses, handle refresh tokens, or call Google APIs directly. Provider-specific details stay behind adapters. Persisted local data is the display source; collection updates it and UI observers refresh accordingly.
+| Component | Shared | Platform-specific boundary |
+| --- | --- | --- |
+| `packages/core` | Models, date/deadline semantics, account/source identity, collection/export use cases and repository contracts. | Inject clock, hashing, transport, authorization, storage and cancellation capabilities. |
+| `packages/epitech` | Route allowlists, response validation, normalized projections, pagination and coverage rules. | Inject an authorized transport. On mobile this uses the native session owner; on web it runs behind the chosen browser/server session boundary. |
+| `packages/google` | Calendar payloads, source identity, deterministic event IDs, conflict/reconciliation policy and future Drive export rules. | Native SDK authorization on Android; supported Google web authorization on web. Provider calls run only where that platform's credentials are held. |
+| `apps/mobile` | Consumes shared packages. | React Native screens, Expo bootstrap, SecureStore, native file/database adapters and local Android modules. |
+| `apps/web` | Consumes shared packages. | React pages, browser navigation/downloads and, if chosen, server-only session/provider routes. |
 
-## 5. Technology baseline
+Shared packages must not import React Native, Expo, DOM/browser globals, server environment secrets or a web framework. Put those dependencies in platform adapters, passed into application code through typed contracts. Do not instantiate a process-global native-style session manager on a multi-user web server. Separate browser-safe and server-only entry points so a client import cannot pull secrets or privileged adapters into its bundle.
 
-Use this baseline after the login investigation supports it:
+Screens do not interpret raw provider responses, own refresh tokens or construct arbitrary provider URLs. Repositories are the display boundary; the current memory-only Android snapshot is an explicit interim implementation, not proof that durable repositories already exist. Share visual tokens or formatting where useful; separate native and web screen implementations remain appropriate.
 
-| Concern | Baseline |
-| --- | --- |
-| Mobile UI | React Native with TypeScript. |
-| Build/runtime | Expo development build, with native Android configuration available. Do not require Expo Go for authentication validation. |
-| Navigation | Expo Router or the existing repository's navigation solution. |
-| Durable structured data | SQLite via `expo-sqlite`, versioned migrations, account-scoped repositories. |
-| Database protection | SQLCipher in the native build; database key kept in protected device storage. Verify `PRAGMA cipher_version` before treating the database as encrypted. |
-| Tokens and encryption keys | `expo-secure-store` or a native equivalent backed by Android Keystore. |
-| Files | App-private storage, per-account directories, streaming transfers and explicit retention controls. |
-| Remote contracts | Independently authored TypeScript models plus runtime response validation. |
-| Transient UI state | Component state and small stores only where necessary. Do not duplicate the durable database in a global state store. |
-| Search | SQLite full-text search for metadata and supported text content; no AI service required. |
-| Google authorization | A maintained native Android integration using Google's current authorization APIs, isolated behind a connector adapter. |
+## 5. Technology and storage baseline
 
-Choose mutually compatible stable package versions at implementation time and commit a lockfile. Do not copy version numbers from this document. If the proven login approach requires native code, add an Android identity adapter; explain the constraint before replacing the entire stack.
+| Concern | Mobile | Web / shared direction |
+| --- | --- | --- |
+| UI | React Native and TypeScript. | React and TypeScript; framework selection follows W0. |
+| Runtime | Expo Android development build; local native adapters where required. | Browser application; optional same-origin server routes if the chosen architecture needs them. |
+| Domain and contracts | Consume portable shared packages. | Same models, schemas, date rules and export policies; platform integration remains injected. |
+| Durable metadata | Planned account-scoped SQLite with migrations. Current project/timetable snapshots are memory-only. | Start with session-bound data. Account-scoped IndexedDB metadata caching is a possible later adapter, subject to browser retention and cleanup tests. |
+| Credential storage | SecureStore / Android Keystore-backed implementation. | Prefer opaque HttpOnly session cookies with provider tokens held only by a selected BFF. Browser-only OAuth, if chosen, needs a separately reviewed short-lived in-memory token strategy. |
+| Encryption | Verify SQLCipher availability in the native build before claiming encrypted database storage. | IndexedDB/origin isolation is not SecureStore or SQLCipher. Do not claim equivalent protection or client-side encryption without a tested key-management design. |
+| Documents | App-private files, streamed transfers, explicit offline retention. | Browser download/preview adapters; optional authorized server streaming. Browser quotas, CORS and user-managed downloads differ from native files. |
+| Google authorization | Existing native Android AuthorizationClient candidate. | App-owned web OAuth client and supported browser/server flow, independently configured and validated. |
+| Navigation and lifecycle | Native screen navigation, foreground/resume, Android process death. | URLs, deep links, refresh/back navigation, browser tabs and expiring server sessions. |
+| Search | Repository contract; future local full-text implementation. | Same query semantics where supported; choose browser/server indexing only after storage decisions. |
 
-SQLCipher is not available in Expo Go. Setting a database key without checking that the built binary contains SQLCipher must not silently produce an unencrypted database. Tokens belong in protected storage, not SQLite, AsyncStorage or logs. SQLCipher does not encrypt document files; those remain in app-private storage under Android's platform protection. Do not advertise separate application-level file encryption unless it has actually been implemented and tested.
+Use mutually compatible stable packages and a lockfile when implementation is authorized. Do not pick versions from this architecture. npm workspaces is the proposed minimum for sharing packages; a TypeScript alias alone is not a complete workspace/build configuration.
 
-Suggested source layout, to be created only during authorized implementation:
+Native storage rules remain: tokens are not database rows or AsyncStorage values; SQLCipher does not encrypt document files; verify `PRAGMA cipher_version` on the actual Android binary before calling its database encrypted. Do not apply native libraries or native security guarantees to the browser.
+
+For a server-backed web option, the session store must support bounded lifetime, logout invalidation and account-isolated export/refresh coordination across workers. A request-local object or serverless process memory alone cannot provide durable deduplication or session persistence. Choose the minimal private store and its retention in the web decision record; no specific hosted database is selected here.
+
+Target layout, to be created only during a later authorized migration:
 
 ```text
 architecture.md
-app/                         navigation and screen composition
-src/
-  domain/                    provider-independent models and contracts
-  application/               collect, search, download and export use cases
-  features/
-    auth/
-    home/
-    documents/
-    timetable/
-    academic/
-    connections/
-    settings/
-  providers/
-    epitech/                 auth strategies, transport, schemas, collectors
-    google/                  authorization, calendar and Drive adapters
-  storage/                   database, migrations, repositories, file store
-  jobs/                      durable collection/download/export jobs
-  platform/                  Android-specific identity and lifecycle bridges
-  shared/                    errors, time handling and redacted diagnostics
-  test-support/              synthetic fixtures and fake adapters
-modules/                     native Android adapters only if needed
-docs/
-  api/                       curated endpoint evidence
-  decisions/                 architecture decisions
-  validation/                sanitized milestone evidence and coverage ledger
+package.json                         future workspace scripts/configuration
+package-lock.json
+apps/
+  mobile/
+    App.tsx                          existing Expo entry point moved deliberately
+    app.json
+    src/features/                    native screens and app composition
+    src/platform/                    native session/storage/file adapters
+    modules/better-google-auth/      existing local Android authorization module
+  web/
+    src/features/                    web screens and app composition
+    src/platform/                    browser adapters
+    src/server/                      optional BFF; never imported into browser code
+packages/
+  core/src/                          domain models, use cases and ports
+  epitech/src/                       school contracts, normalization and collectors
+  google/src/                        export payloads, identity and conflict policies
+  test-support/                      synthetic fixtures and shared adapter contracts
+docs/                                existing API, decisions, setup and evidence
+.github/workflows/                   separate app checks and releases
 ```
 
-## 6. First milestone: prove Epitech login on Android
+The existing Expo app is still at the repository root. This tree is a target, not a claim that directories or workspaces have been implemented. Do not move native modules until their new Expo autolinking path has been configured and verified.
+
+## 6. School login: Android proof and web feasibility
 
 ### 6.1 Known website flow
 
@@ -179,7 +201,7 @@ Evaluate these candidates rather than declaring either operational:
 
 Use the normal school/Microsoft sign-in experience, including MFA. Do not impersonate ownership of the school registration, assume a new redirect is allowed, weaken TLS, bypass authentication controls, proxy password entry, read another app's private browser storage, or use copy/paste tokens as the final user experience.
 
-If a portal bridge is evaluated, it must not read password fields or inject a bridge into Microsoft credential pages. Any session transfer must be limited to the intended authenticated school origin and the student's device, with an explicit connection action. Do not send school session tokens to an application-owned server. Do not ship a bridge merely because it appears technically possible; prove that its login behavior and origin checks are sound.
+If a portal bridge is evaluated, it must not read password fields or inject a bridge into Microsoft credential pages. Any session transfer must be limited to the intended authenticated school origin and the student's device, with an explicit connection action. The Android portal candidate keeps school session tokens on-device. The separate conditional web BFF design below must not become an implicit upload path for native credentials. Do not ship a bridge merely because it appears technically possible; prove that its login behavior and origin checks are sound.
 
 If neither strategy meets the no-school-involvement constraint, report the exact unresolved dependency. Do not hide it behind a mock login or continue presenting the app as viable under unchanged requirements.
 
@@ -202,7 +224,7 @@ Requirements:
 
 ### 6.4 Login acceptance criteria
 
-When login implementation is later authorized, use a real Android device or representative Android runtime and a consenting student account. Record sanitized pass/fail evidence for:
+For live validation of the existing login candidate, use a real Android device or representative Android runtime and a consenting student account. Record sanitized pass/fail evidence for:
 
 1. Fresh connection through the intended Android flow; cancellation also returns cleanly.
 2. Normal MFA completion if the account requires it.
@@ -216,6 +238,33 @@ When login implementation is later authorized, use a real Android device or repr
 If natural expiry cannot be exercised during the test, label refresh as pending; do not fabricate evidence. Do not alter device clocks or provider configuration to manufacture success. A fake adapter may test application behavior but cannot satisfy this milestone.
 
 The deliverable for this milestone is a short login decision record, the selected adapter, reproducible setup instructions, and actual Android validation evidence. The user has now authorized independently testable project/timetable and Google Calendar work while this evidence remains pending. This changes implementation ordering, not the requirement to prove Android login before release. Document collection is still outside the current session.
+
+### 6.5 Web feasibility gate (W0)
+
+Before restructuring the repository or building a web release, establish how a student can obtain and maintain a usable school session from an independent web origin. This is unresolved. A successful Android connection, a signed-in school browser tab or a Google login does not establish it.
+
+Browser same-origin rules prevent our website from reading the school portal's DOM, cookies or local storage. CORS permission for API responses does not expose that storage. A popup/iframe cannot transfer the existing Android WebView bridge to the web. A BFF can perform allowed server-side requests with a valid session, but cannot manufacture that session or make the school accept another app's token audience. See the [same-origin rules](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Same-origin_policy) and [CORS model](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS).
+
+W0 must record sanitized evidence for:
+
+1. A documented/verified school sign-in path compatible with an app-owned web origin and the no-school-involvement constraint. Verify callback registration/tenant restrictions and Epitech token acceptance rather than assuming permission to reuse the school's application.
+2. Fresh login, normal MFA, cancellation, verified student role and matching own-profile identity in an actual browser.
+3. Session renewal/expiry, logout and account switching. Identify exactly where each school/Google credential lives and which component renews it.
+4. Real preflight/CORS behavior for browser API calls, including Authorization headers, allowed origins, credentials and response access. A Node/server request is not a browser CORS test; `no-cors` is not a readable API solution.
+5. Document download/preview/streaming behavior for actual authorized file hosts, separately from API CORS. Prove the byte access needed for Drive export before claiming parity.
+6. The chosen transport: supported direct browser access, or a minimal same-origin BFF with a legitimate session. Document server credential custody, retention, hosting and remaining constraints before choosing the latter for implementation.
+
+Do not work around a failed gate by collecting school passwords, asking students to paste tokens, reverse-proxying Microsoft credential entry, disabling browser security, or silently requiring an extension. No extension or mobile-to-web token transfer is included in this plan. If no feasible path satisfies the constraints, mark authenticated web release blocked and retain mobile as an independent product. Do not advertise an authenticated web release using mock login.
+
+### 6.6 Conditional web session boundary
+
+If W0 selects a BFF, use a same-origin session service tied to the verified school identity; it does not introduce a separate app password/account. The browser receives an opaque session identifier, not Epitech refresh tokens, Google client secrets or server credentials. Use HTTPS, HttpOnly/Secure host-scoped cookies, an appropriate SameSite policy, bounded expiration and session rotation. Test the real OAuth redirect/cookie behavior; see [cookie attributes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie).
+
+Validate OAuth state and one-time callback transactions, use provider-supported authorization-code/PKCE protections where applicable, and use maintained provider libraries. Protect state-changing routes such as export, connect and disconnect with CSRF defenses and origin checks; SameSite alone is insufficient. Provider codes/tokens must not reach analytics, page URLs after callback processing, logs or static bundles.
+
+The BFF authenticates every operation, derives account context from its verified session, and exposes named allowlisted operations. It must not accept arbitrary URLs, student IDs or caller-supplied bearer tokens as a general proxy. Keep the existing provider origin/redirect rules. Coordinate refresh/rotation and export fences across concurrent tabs/workers with account-scoped atomic state. Never put student-specific data in a shared global cache, static HTML export or another user's server-rendered response. Use private/no-store responses for authenticated data and keep credentials out of service-worker caches.
+
+Encrypt retained provider secrets with server-controlled key management and minimal retention. Clear session access and sensitive caches on logout; preserve only deliberately scoped export metadata needed for safe retries under the documented retention policy. No long-term hosted school-document archive or cross-device backup is implied. If a browser-only design is selected instead, explicitly document its in-memory credential lifetime and reauthorization behavior; do not put long-lived provider tokens in localStorage or IndexedDB.
 
 ## 7. Student data collection and coverage
 
@@ -281,9 +330,9 @@ The Epitech adapter owns authentication headers, URL construction, response vali
 
 The API inventory is a research aid. Do not sweep its 644 definitions against a logged-in account. Add only the student operations a collector has justified.
 
-## 9. Local data and document storage
+## 9. Data repositories and document storage
 
-Use account-scoped repositories over a migrated local database. The following model is a design contract; exact table names may change while preserving the semantics.
+Use account-scoped repository contracts with platform-specific storage implementations. Mobile durable storage targets a migrated local database; web may use session memory, a bounded browser metadata cache, or the explicitly selected private server store. The following model is a shared design contract, not a requirement to copy one database engine or file path format to both platforms.
 
 | Model | Important fields / responsibility |
 | --- | --- |
@@ -292,7 +341,7 @@ Use account-scoped repositories over a migrated local database. The following mo
 | SchoolRecord | Account + source + remote ID, kind, normalized fields, source link, source update/version marker, first/last observed timestamps and access state. |
 | Document | Stable identity, name, MIME type, size when known, source/parent folder, unit/project/year context, remote version, download state and local blob reference. |
 | Event | Remote event/occurrence identity, title, start/end instants, timezone, rooms, instructors, campus and optional personal slot. |
-| LocalBlob | App-private path, size, checksum, source version, temporary/pinned state and last use. |
+| LocalBlob | Platform-private file/blob handle, size, checksum, source version, temporary/pinned state and last use; handles are not portable across apps. |
 | Connection | Provider, selected provider account identity/handle, granted capabilities and status; provider credentials stay in protected storage. |
 | ExportMapping | School account + source identity + provider account + destination, remote item ID, exported source version/hash and last successful export. |
 | Job | Account, operation kind, durable idempotency/correlation key, payload references, state, attempts, retry time, progress and cancellation state. |
@@ -311,15 +360,26 @@ Provide selection and batch actions, including retrieval/export of all discovere
 
 A signed object-storage URL is not the same origin as the school API. Validate expected HTTPS download destinations and redirect behavior; do not forward Epitech bearer headers or refresh tokens to object storage or to Google. Treat an expired download URL as a reason to obtain a fresh URL before assuming the account itself is invalid.
 
-Default metadata storage is local. Ordinary offline mode may show previously collected data and pinned files with a stale indicator. It cannot fetch new school data or complete a Google upload without connectivity. Disconnect/account changes must clear or isolate every cache, file, job and export mapping.
+On mobile, the target metadata store is device-local; current snapshots are memory-only. Offline repositories and pinned files must be implemented and validated before being offered. On web, storage and offline behavior follow the W0/session decision and browser-specific adapters below. Offline mode cannot fetch new school data or complete a Google upload without connectivity. Disconnect/account changes must clear or isolate every cache, file, job and export mapping on the relevant platform.
+
+### 9.1 Browser storage and file behavior
+
+Start web data in session memory unless a validated persistence adapter is selected. Browser metadata caches must be account-scoped, bounded, migration-aware and cleared on logout; they must not hold long-lived provider credentials. Browser storage can be evicted and browser tabs can close without completing work. Do not promise native-like background execution, pinned storage or equivalent at-rest protection.
+
+Use browser download/preview mechanisms and streaming when supported. Do not copy Android file paths, native file permissions or SQLCipher assumptions to web. If a BFF streams documents, derive the source from an authorized school record, validate the resulting file host/redirects, and avoid retaining bytes beyond the documented operation. A school download link that works by navigation is not proof that browser JavaScript can read the bytes for export. Downloads already saved by the student are independent copies and cannot be removed by website logout.
 
 ## 10. Google account connections
 
 Epitech connection and Google authorization are independent. A student can browse collected school data without granting Google access. Google sign-in is not a substitute for verifying an Epitech student session.
 
-Use Google's current Android authorization integration through the Google provider adapter. Request Calendar access when the student first uses the calendar action, and Drive access when first exporting a file. Register an app-owned Android client with the correct package/signing identities during later setup; do not reuse the school's Microsoft registration for Google integration.
+Use separate platform authorization adapters behind shared Google capability/export contracts:
 
-Do not apply a desktop localhost OAuth recipe to Android. Do not use a password form or an embedded Google login page. Do not assume the Android SDK will hand the application a raw refresh token; use its documented token acquisition/renewal contract. Persist only what the chosen supported SDK requires.
+- **Android:** retain the native AuthorizationClient candidate and its app-owned Android OAuth registration, bound to the real package/signing identities.
+- **Web:** configure an app-owned web OAuth client with exact authorized origins/callbacks. If a BFF is selected, prefer the supported authorization-code server flow, with any client secret and retained tokens held only server-side. A browser-only flow is a separate decision; a browser is not a confidential client. Follow [Google's web-server authorization guide](https://developers.google.com/identity/protocols/oauth2/web-server).
+
+Request Calendar access when the student links/uses Calendar, and Drive access when first exporting a file. Configure development and production callbacks deliberately. Do not embed web client secrets in public environment variables, reuse the school's Microsoft registration, or import the native Google module into the web bundle.
+
+Do not apply a desktop localhost OAuth recipe to Android or a native SDK flow to the browser. Do not use a password form or an embedded Google credential page. Token acquisition, renewal and storage follow each platform's documented provider contract. The native SDK is not assumed to return a raw refresh token; web server tokens are not copied to device storage. Persist only what the chosen supported adapter requires.
 
 Recommended initial capability boundaries:
 
@@ -332,6 +392,8 @@ Recommended initial capability boundaries:
 If the user later requests exporting to arbitrary existing calendars or folders, choose the documented permissions and selection mechanism for that feature. Do not add broad permissions preemptively. Provider cancellation, denied permission, account changes and revoked grants must leave core school browsing usable.
 
 Each export must identify its actual Google account and destination. Switching provider accounts cannot reuse mappings from the previous account. Disconnect cancels pending jobs for that connection; removing a connection does not silently delete files or calendar events that were already exported.
+
+Shared export rules do not automatically synchronize phone and web destinations. Keep school identity, Google subject, OAuth application context and destination in each mapping's namespace. A browser/deployment and a phone can have independent app-created calendars. Do not promise cross-platform duplicate prevention or calendar discovery until shared destination recovery and the scope/client permission boundary have been designed and tested. Clearly identify the destination before an export; independent snapshots are the initial default.
 
 ## 11. Add a class to Google Calendar
 
@@ -373,9 +435,9 @@ A source document changing later must not silently overwrite the student's Drive
 
 Do not expose files publicly or change sharing permissions as part of export. An exported Google file is an intentional independent copy: local logout or later school access loss does not promise its removal from Google Drive.
 
-## 13. Mobile experience and lifecycle
+## 13. Mobile and web experience and lifecycle
 
-The full product can use these main areas after login feasibility is proven:
+Both versions target these product areas after their own login feasibility is proven. Use native navigation on Android and URL-addressable web pages with responsive layouts:
 
 - **Connect Epitech:** clear connection state, normal sign-in, cancellation and recovery.
 - **Home:** useful current classes/deadlines, recent documents and freshness/collection progress.
@@ -386,7 +448,9 @@ The full product can use these main areas after login feasibility is proven:
 
 Screen content should speak in student terms. Keep endpoints, OAuth tokens, database tables and internal collector names in developer diagnostics, not routine product flows. Provide loading, empty, unavailable, partial, stale, disconnected and retry states; never disguise unsupported content as an empty account.
 
-On launch/resume, show cached data first and schedule appropriate refreshes. Manual refresh should be available. Android may defer or stop background work; do not promise continuous collection while the app is closed. A future opt-in background refresh can reuse the job interfaces without introducing a server or automatic exports by accident.
+On mobile launch/resume, show cached data when an implemented repository supports it and provide manual refresh. Android may defer or stop background work. On web, handle direct URLs, back/forward, reloads, tab concurrency, expired sessions and interrupted downloads; authenticated state cannot be embedded in a public/static page. Keep keyboard navigation, visible focus and responsive layouts usable alongside touch.
+
+Neither platform promises continuous collection while closed. A future opt-in background mechanism requires separate platform validation. No server scheduler, automatic export or cross-device synchronization is introduced merely by deploying the website. A PWA/installable/offline web mode is a later capability, not a requirement implied by 'web version'.
 
 ## 14. Jobs, errors and observability
 
@@ -411,12 +475,17 @@ Test behavior that can lose data, misrepresent access or create duplicate extern
 
 | Area | Required verification |
 | --- | --- |
-| Android login | All real-account criteria in section 6, separately from fake-adapter tests. |
+| Android login | All real-account Android criteria in section 6, separately from fake-adapter tests. |
+| Web login | W0 evidence: real browser login/MFA, role/profile, callbacks, CORS, credential location, renewal and logout. |
+| Shared packages | Same synthetic contract cases on both targets; no accidental native/server imports in browser code, or DOM imports in mobile. |
+| Web session/server | CSRF, session fixation, cookie policy, secret-free browser bundles, per-user SSR/cache isolation and concurrent worker refresh/export coordination. |
+| Browser behavior | Deep links, back/reload, tabs, denied storage, eviction, interrupted downloads and logout cleanup in the supported browser matrix. |
+| Platform exports | Independent OAuth registrations, actual account/destination, within-platform retry/restart deduplication and clearly documented cross-platform limits. |
 | Session handling | Serialized refresh, rotation, network failure versus invalid session, process restart and account-switch races. |
 | Collection | Nested resources, all pagination, repeated cursors, partial failures, schema changes and correct freshness/coverage reporting. |
 | Account isolation | Cached data, in-flight results, downloads, Google mappings and queued exports cannot cross school accounts. |
 | Documents | Expired URLs, streamed large transfers, storage pressure, cancellation, duplicate names, version changes and safe credential-free object-storage requests. |
-| Local database | Migrations retain data; encryption availability is verified in the native build; interrupted transactions recover. |
+| Platform repositories | Migrations/retention and interrupted transactions recover; verify native encryption on Android and browser/server cleanup guarantees separately. |
 | Calendar | Correct date/time/room, personal appointment slot, timezone/DST, repeated taps, retries, remote-success/local-failure recovery and manual update behavior. |
 | Drive | Byte-preserving export, filename/MIME, interrupted uploads, uncertain success recovery, batch partial failure and intentional version updates. |
 | Google capability handling | Declined consent, cancelled authorization, wrong/changed account, revoked access and core browsing without Google. |
@@ -428,18 +497,21 @@ Use synthetic fixtures for automated tests and development screenshots. For live
 
 | Milestone | Scope | Exit condition |
 | --- | --- | --- |
-| M0: Android login feasibility | Minimal authorized login test, session manager and a single own-profile read; no general app screens. | Real Android login/session evidence passes, or a precise unresolved dependency is documented. |
-| M1: Local foundation | App shell, account-scoped repositories, protected credentials, encrypted database, job model and first collectors. | Restart, isolation, migration, failure and refresh behavior verified. |
+| M0: Android login feasibility | Native login/session manager and own-profile verification; continue live validation of the existing candidate. | Real Android login/session evidence passes, or the precise unresolved dependency is documented; builds alone do not close this gate. |
+| W0: Web login feasibility | Investigate independent-origin login, CORS, file access and browser/server credential boundaries. | A supported end-to-end path is proven, or authenticated web release is explicitly blocked. |
+| R0: Shared repository migration | Later authorized move to apps/packages, retaining working Android commands and native module autolinking. | Shared contract tests and Android build pass; browser-safe package boundaries and workspace setup are verified. |
+| W1: Web foundation | Implement the selected web session/transport and UI shell using shared packages, after authorization. | Actual browser login/expiry/logout and account isolation pass; any BFF retention/CSRF/secret handling is validated. |
+| M1: Platform foundations | Mobile local repositories/encryption and platform-specific web repository/session adapters; shared job and collection contracts. | Each platform verifies its restart, isolation, migration/retention, failure and refresh guarantees without claiming native/browser storage equivalence. |
 | M2: Centralized data and documents | Source registry, broad student-data collection, searchable document index, individual/batch retrieval and offline files. | Coverage ledger reconciled against portal sources; remaining gaps explicit, with actual supported downloads demonstrated. |
 | M3: Calendar export | Optional Google capability, selected-class export, mappings, duplicate prevention and manual updates. | The 13:00 / room 601 scenario and duplicate/recovery/timezone cases pass. |
 | M4: Drive export | Original-file export, folders, progress, batch behavior, mappings and explicit updates. | Original bytes reach the intended account/folder; interrupted/repeated exports recover without unintended copies. |
-| M5: Coverage and release readiness | Remaining student-visible source coverage, mobile polish, setup/contributor documentation and license decision. | Requirements below are traceable to evidence; open gaps are accurately reported before any public release. |
+| M5: Coverage and release readiness | Platform coverage ledgers, mobile/web usability, setup/contributor documentation, independent releases and license decision. | Each released platform has its own validated login, data/export coverage and operational evidence; remaining differences are visible. |
 
-M0 is a dependency, not a substitute for the rest of the product. A login proof alone is not a completed companion app. Likewise, a personal-documents-only importer does not fulfill the all-accessible-documents requirement.
+M0 and W0 are platform-specific release gates. Android can progress independently when web is blocked, and Android proof cannot close W0. R0/W1 and any new runtime work require later implementation authorization; this architecture edit does not start them. A login proof alone is not a completed companion app, and a personal-documents-only importer does not fulfill the all-accessible-documents requirement.
 
 | Requirement | Primary evidence / milestone |
 | --- | --- |
-| FR-01, FR-02, FR-03, FR-11 | M0 Android student identity and session validation. |
+| FR-01, FR-02, FR-03, FR-11 | M0 Android evidence and W0/W1 web identity/session evidence, separately validated. |
 | FR-04 | M2/M5 source-by-source document coverage, all pages/folders and actual individual/batch retrieval. |
 | FR-05 | M2/M5 normalized student data and coverage ledger. |
 | FR-06 | M3 selected-class Calendar export. |
@@ -447,7 +519,10 @@ M0 is a dependency, not a substitute for the rest of the product. A login proof 
 | FR-08 | M3/M4 optional, independently connected Google account and denied-consent handling. |
 | FR-09 | Collector allowlist, account-relative access, isolation and permission-failure tests. |
 | FR-10 | M5 public-repository hygiene, chosen license and contributor/setup instructions. |
-| FR-12 | This traceability table and milestone completion reports. |
+| FR-12 | This traceability table and platform milestone/coverage reports. |
+| FR-13 | W0/W1 and web-specific M2–M5 coverage; explicitly record blocked or partial capabilities. |
+| FR-14, FR-15 | R0 shared workspace boundaries, dual-target checks and independent release pipelines. |
+| FR-16 | Descriptive task branches and PR metadata; no `codex/` prefix for new branches. |
 
 Each coding-agent handoff should state: completed milestone, real versus mocked evidence, files changed, checks run, remaining coverage gaps and the next permitted milestone. Update this guide when a decision or proven provider constraint changes; preserve the confirmed requirements.
 
@@ -459,10 +534,10 @@ These are outside the initial implementation unless the user later requests them
 - Two-way synchronization back to Epitech.
 - Automatic continuous Google exports or overwrites.
 - Importing unrelated personal Google Drive files or personal calendar events.
-- A hosted backend, separate application accounts, cross-device backup or permanent server storage of school data.
+- Separate application accounts, cross-device backup and permanent server storage of school data. A minimal web BFF is a conditional architecture proposal requiring a proven login path and a documented custody/retention decision; it is not implemented or deployed here.
 - AI summaries/chat, direct integrations with tools beyond Calendar and Drive, and iOS delivery.
 
-Still open: working Android authentication strategy, long-term export update behavior, cross-device storage expectations, final app name, license and any future iOS scope. Settle an open decision when it affects the current milestone; unrelated choices must not delay login investigation.
+Still open: proven Android and web school authentication, browser CORS/file-access behavior, whether a BFF is necessary/acceptable and how it retains state, final web framework/hosting choice, long-term export update behavior, cross-device destination coordination, public branding/license and future iOS scope. Resolve choices at their relevant gate; do not disguise browser or native feasibility assumptions as decisions already validated.
 
 ## 18. Primary references
 
@@ -476,11 +551,47 @@ These support provider constraints and proposed infrastructure. Recheck current 
 - [Google Drive permissions](https://developers.google.com/workspace/drive/api/guides/api-specific-auth): per-file access for uploads and app-managed files.
 - [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/): protected local credential storage and platform limitations.
 - [Expo SQLite / SQLCipher](https://docs.expo.dev/versions/latest/sdk/sqlite/): native database encryption configuration and availability checks.
+- [Browser same-origin policy](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Same-origin_policy) and [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS): distinct browser storage/response-access boundaries, not evidence that Epitech enables our origin.
+- [Web cookie attributes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie): session cookie controls; validate them alongside CSRF and OAuth callbacks.
+- [Google OAuth for web server applications](https://developers.google.com/identity/protocols/oauth2/web-server): web client registration and server authorization flow; it does not establish Epitech web login.
 
-The local API catalog and source references remain the Epitech-specific evidence. Actual authenticated Android validation remains the outstanding first gate.
+The local API catalog and source references remain the Epitech-specific evidence. Actual authenticated Android validation and independent-origin web feasibility remain separate outstanding gates.
 
-## 18. Authorized implementation slice: projects, timetable and Calendar
+## 19. Existing Android implementation slice: projects, timetable and Calendar
 
-The scheduled 23 October session implements accessible project metadata (including start, registration cutoff and due date), a bounded navigable timetable window, and explicit exports of individual classes/deadlines into an app-created Google calendar. Core school browsing remains usable without Google. Initial collected snapshots stay in memory and are cleared on school disconnect/account change; durable encrypted offline repositories remain an M1 follow-up, so this slice does not claim offline collection or full M1/M2 completion. Export correlation must survive restarts using protected account-scoped state and provider-side deterministic identities/reconciliation.
+The merged 23 October Android candidate implements accessible project metadata (including start, registration cutoff and due date), a bounded navigable timetable window, and explicit exports of individual classes/deadlines into an app-created Google calendar. Core school browsing remains usable without Google. Initial collected snapshots stay in memory and are cleared on school disconnect/account change; durable encrypted offline repositories remain an M1 follow-up, so this slice does not claim offline collection or full M1/M2 completion. Export correlation must survive restarts using protected account-scoped state and provider-side deterministic identities/reconciliation.
 
 School contracts may be based on the observed public frontend plus authenticated desktop UI; mark raw API and native Google/Android validation separately. A range-specific timetable view is not a claim to have fetched every historical event. Show date bounds and known gaps and allow navigating ranges. School-side creation, registration and modification remain outside the adapter allowlist.
+
+
+## 20. Repository migration, checks and independent releases
+
+### 20.1 Later migration plan
+
+Do not execute this plan as part of the current documentation request. First complete W0 and record the chosen browser/server login strategy. Then, when implementation is requested:
+
+1. Introduce root npm workspaces while preserving the existing lockfile history and a reproducible install. Move the Expo application into `apps/mobile` without changing its behavior. Adjust Metro, Expo config paths, native module autolinking and generated-directory ignore rules; native module source must remain tracked.
+2. Extract pure models/use cases/repository ports to `packages/core`, school schemas/normalization/collectors to `packages/epitech`, and provider-independent export policy/payloads to `packages/google`. Keep synthetic fixtures reusable. Replace direct runtime globals with injected ports where needed.
+3. Keep mobile credential/storage/native SDK adapters in the mobile app. Verify shared packages can load without Expo/native modules and without browser globals. Give browser-safe and server-only code explicit export/import boundaries.
+4. Add `apps/web` using the W0 decision. Implement the selected browser/session/BFF adapters and web UI without copying the native login bridge or native token store. A server route must resolve its own verified web session rather than accept a mobile session token from the UI.
+5. Add platform coverage and setup records, then verify live browser behavior. Keep the mobile app buildable throughout migration. Do not replace its working integration with an unproven shared abstraction simply to force identical code.
+
+The target packages share business behavior, not automatically user data or credentials. The same repository does not create one global login/session or an automatic phone/browser synchronization service.
+
+### 20.2 Checks and release ownership
+
+| Change | Required checks |
+| --- | --- |
+| Architecture/docs only | Validate links, scope, internal references, requirement traceability and consistency; application tests need not be rerun for prose alone. |
+| Shared package or root workspace/lockfile | Shared contract tests plus mobile typecheck/bundle/native compilation and web typecheck/build/boundary checks once those targets exist. |
+| Mobile adapter/UI/native module | Relevant unit/integration checks, Android build and affected real-device validation. |
+| Web browser/server adapter/UI | Relevant shared contracts, browser build and browser/session/CSRF/account-isolation tests; live provider checks where behavior changes. |
+| Schema/storage migration | Account isolation, upgrade/restart/recovery and the affected platform's retention/encryption evidence. |
+
+Keep mobile and web release workflows distinct, with path-aware triggers when implemented. A mobile-only change need not deploy the website; a web-only change need not publish an Android app. Changes in shared packages must check both consumers. Documentation changes must not force publishing either product. Do not claim these split workflows already exist: the current repository still has its Android-focused checks.
+
+`main` contains both applications after migration. Use short-lived descriptive branches such as `feat/web-login`, `feat/mobile-documents`, `fix/calendar-export` and `docs/mobile-web-architecture`. Do not introduce permanent web/mobile branches or new branch names with a `codex/` prefix. Existing branches need not be renamed as part of this document edit.
+
+Release each target from a reviewed commit on `main`. Android publishes a separately versioned/signed native artifact through its selected distribution process; web builds/deploys to its selected web host after its own release gate. Record the commit and shared-package revisions for each. Optional tag conventions such as `mobile-vX.Y.Z` and `web-vX.Y.Z` can make independent versions explicit. Versioned BFF contracts and migration compatibility must allow an older installed mobile app to keep working if it ever uses that server; the current direct mobile transport does not require moving to the web BFF.
+
+Keep web production secrets only in the server hosting environment, and native signing keys in the mobile release secret store. Development/preview/production Google web callbacks and Android signing clients need their own deliberate configuration. Do not forward production student sessions into public previews, enable shared authenticated caching, or deploy automatically from unreviewed preview changes. Hosting, OAuth configuration, public release and repository visibility changes are separate actions from writing this architecture.
