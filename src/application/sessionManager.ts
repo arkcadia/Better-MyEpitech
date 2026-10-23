@@ -23,6 +23,20 @@ export interface SessionSnapshot {
 const emptySnapshot = (): SessionSnapshot => ({ status: 'disconnected', student: null, issue: null, lastVerifiedAt: null, refreshCount: 0 });
 const invalidSession = (error: AuthError) => ['unauthorized', 'forbidden', 'not_student', 'identity_mismatch', 'contract'].includes(error.code);
 
+async function waitFor<T>(pending: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) throw new AuthError('cancelled');
+  let abort!: () => void;
+  const cancelled = new Promise<never>((_, reject) => {
+    abort = () => reject(new AuthError('cancelled'));
+    signal.addEventListener('abort', abort, { once: true });
+  });
+  try {
+    return await Promise.race([pending, cancelled]);
+  } finally {
+    signal.removeEventListener('abort', abort);
+  }
+}
+
 export function expiresSoon(token: string, now: number): boolean {
   try {
     const payload = token.split('.')[1];
@@ -209,6 +223,68 @@ export class SessionManager {
       if (this.checkPromise === task) this.checkPromise = null;
     });
     return task;
+  }
+
+  /** Authenticated student reads never expose credentials to screens or collectors. */
+  async readSchool(path: string, callerSignal: AbortSignal): Promise<unknown> {
+    const generation = this.generation;
+    const login = this.boundLogin;
+    const sessionSignal = this.controller.signal;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    const assertConnected = () => {
+      this.assertCurrent(generation);
+      if (callerSignal.aborted) throw new AuthError('cancelled');
+      if (!login || this.boundLogin !== login || !this.credentials || !this.snapshot.student ||
+          normalizedLogin(this.snapshot.student.login) !== login) {
+        throw this.snapshot.issue ?? new AuthError('unauthorized');
+      }
+    };
+    assertConnected();
+    callerSignal.addEventListener('abort', abort, { once: true });
+    sessionSignal.addEventListener('abort', abort, { once: true });
+    try {
+      // Foreground/manual checks and all data reads share the same refresh owner.
+      if (this.checkPromise) await waitFor(this.checkPromise, controller.signal);
+      assertConnected();
+      if (expiresSoon(this.credentials!.accessToken, this.now())) {
+        await waitFor(this.checkConnection(), controller.signal);
+        assertConnected();
+      }
+      const attemptedToken = this.credentials!.accessToken;
+      const attemptedRefreshCount = this.snapshot.refreshCount;
+      try {
+        const result = await this.api.readSchool(path, attemptedToken, controller.signal);
+        assertConnected();
+        return result;
+      } catch (error) {
+        assertConnected();
+        if (!(error instanceof AuthError) || error.code !== 'unauthorized') throw safeAuthError(error);
+      }
+
+      // A parallel read may have already renewed this token. Await its verification
+      // before retrying; never rotate the same refresh token concurrently.
+      if (this.checkPromise) await waitFor(this.checkPromise, controller.signal);
+      assertConnected();
+      if (this.credentials!.accessToken === attemptedToken && this.snapshot.refreshCount === attemptedRefreshCount) {
+        await waitFor(this.checkConnection(true), controller.signal);
+        assertConnected();
+      }
+      try {
+        const result = await this.api.readSchool(path, this.credentials!.accessToken, controller.signal);
+        assertConnected();
+        return result;
+      } catch (error) {
+        assertConnected();
+        const issue = safeAuthError(error);
+        if (issue.code === 'unauthorized') await this.fail(issue, generation);
+        // Endpoint permission/schema errors belong to this source, not the login.
+        throw issue;
+      }
+    } finally {
+      callerSignal.removeEventListener('abort', abort);
+      sessionSignal.removeEventListener('abort', abort);
+    }
   }
 
   async disconnect(): Promise<void> {

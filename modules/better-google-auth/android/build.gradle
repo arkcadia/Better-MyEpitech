@@ -1,0 +1,21 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'eu.bettermyepitech.google'
+version = '0.1.0'
+
+expoModule { v2 true }
+
+android {
+  namespace 'eu.bettermyepitech.google'
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  implementation 'com.google.android.gms:play-services-auth:22.0.0'
+}

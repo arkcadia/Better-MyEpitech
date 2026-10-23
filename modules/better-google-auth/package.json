@@ -1,0 +1,6 @@
+{
+  "name": "better-google-auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Android Google Identity Services authorization adapter"
+}

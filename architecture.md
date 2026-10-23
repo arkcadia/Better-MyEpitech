@@ -1,8 +1,8 @@
 # Architecture: Epitech student companion
 
-Date: 22 October 2026. Target: Android first. Status: M0 login implementation candidate; Android login feasibility remains unproven.
+Updated: 23 October 2026. Target: Android first. Status: login candidate plus authorized project/date/timetable and Google Calendar implementation; live Android validation remains pending.
 
-This is the implementation guide for a future coding agent. The user has authorized implementing the login feature. Current code scope is M0; document/data collection and Google integration remain later milestones. Keep the rest of the product in scope, but do not build around an authentication method that has not worked on Android.
+This is the implementation guide for coding agents. On 23 October 2026 the user authorized continuing Android login validation and implementing ongoing projects with their dates/deadlines, the school timetable, and optional Google Calendar linking/export. Independently testable adapters and screens may proceed while interactive Android validation is pending. Do not present source-map contracts or mocked tests as live provider evidence. Document collection and Google Drive remain planned features outside this implementation session.
 
 ## 1. Product purpose and confirmed requirements
 
@@ -22,7 +22,7 @@ The app complements the existing school website. Centralizing data does not requ
 | FR-08 | Students connect their own Google account; Google integration is optional. |
 | FR-09 | Preserve the existing school's permissions. Use the signed-in student's access, including resources shared with that student. |
 | FR-10 | The codebase is intended to be open source. Keep personal data, credentials and downloaded school materials out of the public repository. |
-| FR-11 | Validate login first, before implementing collection and Google features. |
+| FR-11 | Validate login and report its evidence accurately. The 23 October authorization permits project/timetable and Calendar implementation in parallel with pending interactive validation. |
 | FR-12 | Do not silently drop previously discussed features when narrowing the first milestone to login. |
 
 Reading broad directory endpoints or guessing other students' identifiers is not the meaning of "every data available." The collection boundary is the signed-in student's normal website experience, including authorized shared course resources.
@@ -215,7 +215,7 @@ When login implementation is later authorized, use a real Android device or repr
 
 If natural expiry cannot be exercised during the test, label refresh as pending; do not fabricate evidence. Do not alter device clocks or provider configuration to manufacture success. A fake adapter may test application behavior but cannot satisfy this milestone.
 
-The deliverable for this milestone is a short login decision record, the selected adapter, reproducible setup instructions, and actual Android validation evidence. Do not build document or Google screens before this gate passes. If the future user request is specifically login-only, remain within that milestone.
+The deliverable for this milestone is a short login decision record, the selected adapter, reproducible setup instructions, and actual Android validation evidence. The user has now authorized independently testable project/timetable and Google Calendar work while this evidence remains pending. This changes implementation ordering, not the requirement to prove Android login before release. Document collection is still outside the current session.
 
 ## 7. Student data collection and coverage
 
@@ -478,3 +478,9 @@ These support provider constraints and proposed infrastructure. Recheck current 
 - [Expo SQLite / SQLCipher](https://docs.expo.dev/versions/latest/sdk/sqlite/): native database encryption configuration and availability checks.
 
 The local API catalog and source references remain the Epitech-specific evidence. Actual authenticated Android validation remains the outstanding first gate.
+
+## 18. Authorized implementation slice: projects, timetable and Calendar
+
+The scheduled 23 October session implements accessible project metadata (including start, registration cutoff and due date), a bounded navigable timetable window, and explicit exports of individual classes/deadlines into an app-created Google calendar. Core school browsing remains usable without Google. Initial collected snapshots stay in memory and are cleared on school disconnect/account change; durable encrypted offline repositories remain an M1 follow-up, so this slice does not claim offline collection or full M1/M2 completion. Export correlation must survive restarts using protected account-scoped state and provider-side deterministic identities/reconciliation.
+
+School contracts may be based on the observed public frontend plus authenticated desktop UI; mark raw API and native Google/Android validation separately. A range-specific timetable view is not a claim to have fetched every historical event. Show date bounds and known gaps and allow navigating ranges. School-side creation, registration and modification remain outside the adapter allowlist.
