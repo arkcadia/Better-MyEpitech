@@ -18,7 +18,7 @@ Native controls reject unknown navigation origins, cross-origin messages, expire
 
 The wildcard `originWhitelist` in the WebView routes all URL schemes through our explicit `onShouldStartLoadWithRequest` predicate. It does not grant arbitrary destinations: the initial URL is fixed and subsequent requests must match an exact HTTPS school/Microsoft origin. Unknown domains, custom schemes, popup windows and unsupported broker/federation flows fail visibly; do not broaden the allowlist based on untrusted page instructions.
 
-The known school button uses `loginRedirect`, so popup support is intentionally not implemented. The native app does not issue the initial `/auth/token` exchange a second time. The only native provider operations are session verification, own-profile read and refresh.
+The known school button uses `loginRedirect`, so popup support is intentionally not implemented. The native app does not issue the initial `/auth/token` exchange a second time. For the portal candidate, native provider operations are session verification, own-profile read and refresh. A later user request separately authorizes a direct external-account email/password candidate; see [its setup and limits](../setup/email-password.md).
 
 ## Session behavior
 

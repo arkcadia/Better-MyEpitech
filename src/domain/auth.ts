@@ -28,6 +28,7 @@ export interface SchoolIdentity {
 }
 
 export interface EpitechAuthApi {
+  signInWithPassword?(email: string, password: string, signal: AbortSignal): Promise<Credentials>;
   verify(accessToken: string, signal: AbortSignal): Promise<SchoolIdentity>;
   ownProfile(accessToken: string, signal: AbortSignal): Promise<VerifiedStudent>;
   refresh(credentials: Credentials, signal: AbortSignal): Promise<Credentials>;
@@ -45,6 +46,8 @@ export type AuthErrorCode =
   | 'not_student'
   | 'identity_mismatch'
   | 'storage'
+  | 'invalid_credentials'
+  | 'invalid_input'
   | 'cancelled';
 
 const messages: Record<AuthErrorCode, string> = {
@@ -57,12 +60,14 @@ const messages: Record<AuthErrorCode, string> = {
   not_student: 'This app currently supports verified Epitech student accounts.',
   identity_mismatch: 'The school responses do not identify the same student. Please sign in again.',
   storage: 'The session could not be saved or removed securely. Please try again.',
+  invalid_credentials: 'MyEpitech rejected external-account sign-in. This does not prove your password is wrong: Microsoft-only accounts may not support this endpoint. Use Microsoft if that is your normal school sign-in.',
+  invalid_input: 'Enter a valid email address and a password.',
   cancelled: 'The connection attempt was cancelled.',
 };
 
 export class AuthError extends Error {
-  constructor(readonly code: AuthErrorCode) {
-    super(messages[code]);
+  constructor(readonly code: AuthErrorCode, readonly httpStatus?: 400 | 401 | 403) {
+    super(`${messages[code]}${httpStatus ? ` (HTTP ${httpStatus})` : ''}`);
     this.name = 'AuthError';
   }
 }
@@ -72,6 +77,14 @@ export function safeAuthError(error: unknown): AuthError {
 }
 
 export const normalizedLogin = (login: string): string => login.trim().toLowerCase();
+
+export function validatePasswordSignIn(email: string, password: string): void {
+  if (typeof email !== 'string' || email.trim().length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+      typeof password !== 'string' || !password.length || password.length > 4_096) {
+    throw new AuthError('invalid_input');
+  }
+}
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

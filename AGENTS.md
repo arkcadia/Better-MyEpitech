@@ -6,6 +6,7 @@
 - Keep provider URLs, credential handling and response validation in adapters; screens receive only verified student data and safe status/errors.
 - Keep secrets, private fixtures, full OAuth URLs and signed download URLs out of code, logs, commits, issue bodies and screenshots.
 - Preserve origin, challenge, cancellation, account-isolation and storage-order guarantees when modifying authentication.
+- The user authorized email/password as an alternative on web and Android. Use only the observed fixed `/auth/external` operation, never persist the password, and still verify student role/own profile. Do not imply ordinary Microsoft credentials are accepted or bypass MFA; see `docs/setup/email-password.md`.
 - Run `npm run typecheck`, `npm test` and `npm run bundle:android` for authentication changes. Record native/runtime checks separately from mocked checks.
 - Do not merge a pull request or change repository visibility as part of implementation.
 
