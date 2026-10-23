@@ -1,4 +1,4 @@
-name: Login checks
+name: Android companion checks
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       EXPO_NO_TELEMETRY: '1'
       CI: '1'
@@ -27,3 +27,8 @@ jobs:
       - run: npm test
       - run: npx expo prebuild --platform android --no-install
       - run: npm run bundle:android
+      - name: Install native build tools
+        run: sdkmanager "ndk;27.1.12297006" "cmake;3.22.1"
+      - name: Compile emulator development build
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64

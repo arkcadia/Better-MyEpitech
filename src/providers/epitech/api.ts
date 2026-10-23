@@ -15,6 +15,34 @@ export const PORTAL_URL = `${EPITECH_ORIGIN}/dashboard`;
 
 export type Fetcher = (url: string, init: RequestInit) => Promise<Response>;
 
+/** Only observed student reads may receive the school bearer token. */
+export function schoolReadPath(path: string): string {
+  if (typeof path !== 'string' || path.length > 2_048 || /[\\\s#]/.test(path)) throw new AuthError('contract');
+  const [route = '', query = '', ...extra] = path.split('?');
+  if (extra.length || !['/units/instances/projects', '/events'].includes(route)) throw new AuthError('contract');
+  const params = new URLSearchParams(query);
+  const allowed = route === '/events' ? ['startDate', 'endDate', 'registered'] : ['page', 'limit', 'registeredOnly'];
+  for (const key of params.keys()) {
+    if (!allowed.includes(key) || params.getAll(key).length !== 1) throw new AuthError('contract');
+  }
+  if (route === '/events') {
+    const start = params.get('startDate');
+    const end = params.get('endDate');
+    const instant = (value: string | null): value is string => Boolean(value &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value)));
+    if (!instant(start) || !instant(end) || Date.parse(end) <= Date.parse(start) ||
+        Date.parse(end) - Date.parse(start) > 32 * 86_400_000 ||
+        (params.has('registered') && params.get('registered') !== 'me')) throw new AuthError('contract');
+  } else {
+    for (const key of ['page', 'limit']) {
+      const value = params.get(key);
+      if (value !== null && (!/^[1-9]\d*$/.test(value) || Number(value) > (key === 'limit' ? 1_000 : 100_000))) throw new AuthError('contract');
+    }
+    if (params.has('registeredOnly') && !['true', 'false'].includes(params.get('registeredOnly')!)) throw new AuthError('contract');
+  }
+  return `${route}${params.size ? `?${params.toString()}` : ''}`;
+}
+
 export class HttpEpitechAuthApi implements EpitechAuthApi {
   constructor(
     private readonly fetcher: Fetcher = fetch,
@@ -22,7 +50,7 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
   ) {}
 
   private async request(
-    path: '/auth/verify' | '/students/profile' | '/auth/refresh',
+    path: string,
     signal: AbortSignal,
     accessToken?: string,
     refreshToken?: string,
@@ -99,5 +127,9 @@ export class HttpEpitechAuthApi implements EpitechAuthApi {
       throw new AuthError('contract');
     }
     return { accessToken: value.access_token, refreshToken: value.refresh_token ?? credentials.refreshToken };
+  }
+
+  readSchool(path: string, accessToken: string, signal: AbortSignal): Promise<unknown> {
+    return this.request(schoolReadPath(path), signal, accessToken);
   }
 }

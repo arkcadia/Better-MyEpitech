@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionManager, type SessionStatus } from './src/application/sessionManager';
 import { PortalSignIn } from './src/features/auth/PortalSignIn';
+import { SchoolOverview } from './src/features/school/SchoolOverview';
 import { HttpEpitechAuthApi } from './src/providers/epitech/api';
 import { SecureSessionVault } from './src/storage/secureSessionVault';
 
@@ -51,7 +52,7 @@ function LoginApp() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.brand}>
           <Text style={styles.eyebrow}>BETTER MYEPITECH</Text>
-          <View style={styles.testBadge}><Text style={styles.testBadgeText}>ANDROID · LOGIN TEST</Text></View>
+          <View style={styles.testBadge}><Text style={styles.testBadgeText}>ANDROID · PREVIEW</Text></View>
         </View>
         <View style={styles.intro}>
           <Text style={styles.title}>Your school.{ '\n' }Connected.</Text>
@@ -87,9 +88,10 @@ function LoginApp() {
           {snapshot.status !== 'disconnected' ? <Action label="Disconnect from this device" secondary disabled={snapshot.status === 'disconnecting'} onPress={() => void session.disconnect()} /> : null}
           {busy ? <Text accessibilityLiveRegion="polite" style={styles.detail}>Please wait…</Text> : null}
         </View>
+        {snapshot.student && ['connected', 'checking', 'refreshing'].includes(snapshot.status) ? <SchoolOverview session={session} login={snapshot.student.login} /> : null}
         <View style={styles.note}>
-          <Text style={styles.noteTitle}>One step at a time</Text>
-          <Text style={styles.noteBody}>This first version checks school sign-in and session renewal. Document collection and Google exports come after Android login has been validated.</Text>
+          <Text style={styles.noteTitle}>Keep your dates together</Text>
+          <Text style={styles.noteBody}>Browse accessible projects and timetable entries, then choose which dates to add to Google Calendar. Google connection is optional; school information stays on this device.</Text>
         </View>
         <Text style={styles.footer}>Independent student project · No school affiliation</Text>
       </ScrollView>

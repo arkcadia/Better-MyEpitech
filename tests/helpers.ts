@@ -24,6 +24,7 @@ export function fakeApi() {
     verify: vi.fn<EpitechAuthApi['verify']>().mockResolvedValue({ login: student.login, roles: ['student'] }),
     ownProfile: vi.fn<EpitechAuthApi['ownProfile']>().mockResolvedValue(student),
     refresh: vi.fn<EpitechAuthApi['refresh']>().mockResolvedValue(renewed),
+    readSchool: vi.fn<EpitechAuthApi['readSchool']>().mockResolvedValue({}),
   };
 }
 
