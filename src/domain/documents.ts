@@ -13,7 +13,7 @@ export interface SchoolDocument {
   sourceUrl: string;
   mimeType: string | null;
   size: number | null;
-  /** Null means the source exposes no trustworthy revision: never silently skip it. */
+  /** Null means saved IDs need a visible unknown-version label and explicit refresh option. */
   revision: string | null;
   reference: DocumentReference;
 }

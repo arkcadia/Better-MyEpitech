@@ -53,6 +53,7 @@ export class DocumentManager {
   private keys = new Map<string, { id: string; revision: string }>();
   private artifact: SavedArchive | null = null;
   private delivery: symbol | null = null;
+  private recording: symbol | null = null;
   private pending: DownloadRecords | null = null;
   constructor(private readonly dependencies: Dependencies) {}
   getSnapshot = () => this.state;
@@ -78,6 +79,7 @@ export class DocumentManager {
     void this.artifact?.dispose().catch(() => undefined);
     this.artifact = null;
     this.delivery = null;
+    this.recording = null;
     this.pending = null;
     this.history = {};
     this.keys.clear();
@@ -244,7 +246,7 @@ export class DocumentManager {
   async saveZip(): Promise<boolean> {
     const generation = this.generation;
     const artifact = this.artifact;
-    if (!artifact?.save || this.delivery) return false;
+    if (!artifact?.save || this.delivery || this.recording) return false;
     const delivery = Symbol();
     this.delivery = delivery;
     try {
@@ -271,7 +273,7 @@ export class DocumentManager {
   async shareZip(): Promise<boolean> {
     const generation = this.generation;
     const artifact = this.artifact;
-    if (!artifact?.share || this.delivery) return false;
+    if (!artifact?.share || this.delivery || this.recording) return false;
     const delivery = Symbol();
     this.delivery = delivery;
     try {
@@ -290,11 +292,20 @@ export class DocumentManager {
     }
   }
   async confirmSaved() {
-    if (this.delivery || !this.pending || !this.accountKey || !this.state.index)
+    if (
+      this.delivery ||
+      this.recording ||
+      !this.pending ||
+      !this.accountKey ||
+      !this.state.index
+    )
       return;
+    const recording = Symbol();
+    this.recording = recording;
     const generation = this.generation;
     const records = this.pending;
     const key = this.accountKey;
+    const artifact = this.artifact;
     try {
       this.assert(generation);
       await this.dependencies.history.commit(key, records);
@@ -302,8 +313,9 @@ export class DocumentManager {
       this.history = { ...this.history, ...records };
       const count = Object.keys(records).length;
       this.pending = null;
-      await this.artifact?.dispose().catch(() => undefined);
       this.artifact = null;
+      // Detach before awaiting cleanup: a new account/export may start while it finishes.
+      await artifact?.dispose().catch(() => undefined);
       this.assert(generation);
       this.publish({
         status: "ready",
@@ -318,6 +330,8 @@ export class DocumentManager {
           status: "awaiting_confirmation",
           issue: new DocumentError("history").message,
         });
+    } finally {
+      if (this.recording === recording) this.recording = null;
     }
   }
   async discardZip() {
@@ -328,6 +342,7 @@ export class DocumentManager {
     this.pending = null;
     this.artifact = null;
     this.delivery = null;
+    this.recording = null;
     await artifact?.dispose().catch(() => undefined);
     if (generation === this.generation)
       this.publish({
@@ -343,6 +358,7 @@ export class DocumentManager {
     void this.artifact?.dispose().catch(() => undefined);
     this.artifact = null;
     this.delivery = null;
+    this.recording = null;
     this.pending = null;
     this.publish({
       status: this.state.index ? "ready" : "idle",

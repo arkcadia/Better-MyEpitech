@@ -61,7 +61,7 @@ const memorySink = (confirmed = true) => {
   const chunks: Uint8Array[] = [];
   const artifact = {
     confirmed,
-    dispose: vi.fn(async () => undefined),
+    dispose: vi.fn(async (): Promise<void> => undefined),
     save: vi.fn(async () => undefined),
   };
   const sink: ArchiveSink = {
@@ -653,4 +653,52 @@ it("invalidates a pending share completion when its ZIP is discarded before a ne
   expect(await result).toBe(false);
   expect(setup.history.commit).not.toHaveBeenCalled();
   expect(setup.manager.getSnapshot().status).toBe("awaiting_confirmation");
+});
+it("preserves a new account's ZIP when the old saved archive finishes cleanup late", async () => {
+  const setup = managerSetup(false);
+  await setup.manager.scan();
+  const old = memorySink(false);
+  const cleanup = deferred<void>();
+  old.artifact.dispose.mockImplementation(() => cleanup.promise);
+  await setup.manager.download(["one"], true, async () => old.sink);
+  const saving = setup.manager.confirmSaved();
+  await vi.waitFor(() => expect(old.artifact.dispose).toHaveBeenCalledOnce());
+
+  setup.manager.setAccount("other@example.test");
+  setup.setIndex(index([document("other")]));
+  await setup.manager.scan();
+  const next = memorySink(false);
+  await setup.manager.download(["other"], true, async () => next.sink);
+  cleanup.resolve();
+  await saving;
+
+  expect(setup.manager.getSnapshot()).toMatchObject({
+    account: "other@example.test",
+    status: "awaiting_confirmation",
+    savedCount: 0,
+    states: { other: "new" },
+  });
+  expect(await setup.manager.saveZip()).toBe(true);
+  expect(next.artifact.save).toHaveBeenCalledOnce();
+  expect(next.artifact.dispose).not.toHaveBeenCalled();
+});
+it("records one confirmation at a time and permits retry after a history write fails", async () => {
+  const setup = managerSetup(false);
+  await setup.manager.scan();
+  await setup.manager.download(["one"], true, setup.factory);
+  const commit = deferred<void>();
+  vi.mocked(setup.history.commit).mockImplementationOnce(() => commit.promise);
+  const first = setup.manager.confirmSaved();
+  await setup.manager.confirmSaved();
+  expect(setup.history.commit).toHaveBeenCalledOnce();
+  commit.resolve();
+  await first;
+  expect(setup.manager.getSnapshot().states.one).toBe("downloaded");
+
+  await setup.manager.download(["one"], false, setup.factory);
+  vi.mocked(setup.history.commit).mockRejectedValueOnce(new DocumentError("history"));
+  await setup.manager.confirmSaved();
+  expect(setup.manager.getSnapshot()).toMatchObject({ status: "awaiting_confirmation" });
+  await setup.manager.confirmSaved();
+  expect(setup.manager.getSnapshot()).toMatchObject({ status: "ready", savedCount: 1 });
 });
