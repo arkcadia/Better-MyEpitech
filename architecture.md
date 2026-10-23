@@ -1,8 +1,8 @@
 # Architecture: Epitech mobile and web companion
 
-Updated: 23 October 2026. Targets: Android mobile and web, maintained together on `main`. Status: Android implementation candidate; web architecture planned and school web login unproven.
+Updated: 23 October 2026. Targets: Android mobile and web, maintained together on `main`. Status: Android implementation candidate; experimental web foundation implemented; school web login unproven.
 
-This guide covers both versions of Better MyEpitech. The user has requested a shared repository containing mobile and web apps, shared business logic, and independent releases. This request authorizes architecture documentation only: do not restructure the repository, scaffold a web app, implement web authentication, or deploy anything as part of this update.
+This guide covers both versions of Better MyEpitech. The user has requested a shared repository containing mobile and web apps, shared business logic, and independent releases. The subsequent user request authorizes web implementation. The first slice adds a separately buildable web workspace and a configurable experimental sign-in adapter; deployment and authenticated release still require the W0 evidence below.
 
 The existing Android project includes school login, projects/deadlines, timetable collection and optional Google Calendar export candidates. The projects/calendar work is merged into `main`; 167 synthetic tests, Android bundling and native Android compilation passed. Real Android school login/MFA/refresh, live API coverage, configured Google authorization and live exports remain pending. Web login has not been established. Shared code and passing Android builds do not prove browser feasibility. Document collection and Google Drive remain required roadmap features for both platforms.
 
@@ -241,7 +241,7 @@ The deliverable for this milestone is a short login decision record, the selecte
 
 ### 6.5 Web feasibility gate (W0)
 
-Before restructuring the repository or building a web release, establish how a student can obtain and maintain a usable school session from an independent web origin. This is unresolved. A successful Android connection, a signed-in school browser tab or a Google login does not establish it.
+Before completing the repository migration or building an authenticated web release, establish how a student can obtain and maintain a usable school session from an independent web origin. This is unresolved. A successful Android connection, a signed-in school browser tab or a Google login does not establish it.
 
 Browser same-origin rules prevent our website from reading the school portal's DOM, cookies or local storage. CORS permission for API responses does not expose that storage. A popup/iframe cannot transfer the existing Android WebView bridge to the web. A BFF can perform allowed server-side requests with a valid session, but cannot manufacture that session or make the school accept another app's token audience. See the [same-origin rules](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Same-origin_policy) and [CORS model](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS).
 
@@ -507,7 +507,7 @@ Use synthetic fixtures for automated tests and development screenshots. For live
 | M4: Drive export | Original-file export, folders, progress, batch behavior, mappings and explicit updates. | Original bytes reach the intended account/folder; interrupted/repeated exports recover without unintended copies. |
 | M5: Coverage and release readiness | Platform coverage ledgers, mobile/web usability, setup/contributor documentation, independent releases and license decision. | Each released platform has its own validated login, data/export coverage and operational evidence; remaining differences are visible. |
 
-M0 and W0 are platform-specific release gates. Android can progress independently when web is blocked, and Android proof cannot close W0. R0/W1 and any new runtime work require later implementation authorization; this architecture edit does not start them. A login proof alone is not a completed companion app, and a personal-documents-only importer does not fulfill the all-accessible-documents requirement.
+M0 and W0 are platform-specific release gates. Android can progress independently when web is blocked, and Android proof cannot close W0. The subsequent web implementation request authorizes an experimental W1 foundation while W0 remains open; neither static preview nor configurable login closes those release gates. A login proof alone is not a completed companion app, and a personal-documents-only importer does not fulfill the all-accessible-documents requirement.
 
 | Requirement | Primary evidence / milestone |
 | --- | --- |
@@ -568,7 +568,7 @@ School contracts may be based on the observed public frontend plus authenticated
 
 ### 20.1 Later migration plan
 
-Do not execute this plan as part of the current documentation request. First complete W0 and record the chosen browser/server login strategy. Then, when implementation is requested:
+Web implementation is now requested. The first slice adds `apps/web` and reuses portable code in its existing location; the full native relocation/package extraction remains deferred until W0 is resolved. Complete the remaining migration incrementally:
 
 1. Introduce root npm workspaces while preserving the existing lockfile history and a reproducible install. Move the Expo application into `apps/mobile` without changing its behavior. Adjust Metro, Expo config paths, native module autolinking and generated-directory ignore rules; native module source must remain tracked.
 2. Extract pure models/use cases/repository ports to `packages/core`, school schemas/normalization/collectors to `packages/epitech`, and provider-independent export policy/payloads to `packages/google`. Keep synthetic fixtures reusable. Replace direct runtime globals with injected ports where needed.
@@ -588,10 +588,21 @@ The target packages share business behavior, not automatically user data or cred
 | Web browser/server adapter/UI | Relevant shared contracts, browser build and browser/session/CSRF/account-isolation tests; live provider checks where behavior changes. |
 | Schema/storage migration | Account isolation, upgrade/restart/recovery and the affected platform's retention/encryption evidence. |
 
-Keep mobile and web release workflows distinct, with path-aware triggers when implemented. A mobile-only change need not deploy the website; a web-only change need not publish an Android app. Changes in shared packages must check both consumers. Documentation changes must not force publishing either product. Do not claim these split workflows already exist: the current repository still has its Android-focused checks.
+Keep mobile and web release workflows distinct, with path-aware triggers when implemented. A mobile-only change need not deploy the website; a web-only change need not publish an Android app. Changes in shared packages must check both consumers. Documentation changes must not force publishing either product. The current checks now have separate Android and web build jobs; neither publishes a release. Path-aware release workflows remain future work.
 
 `main` contains both applications after migration. Use short-lived descriptive branches such as `feat/web-login`, `feat/mobile-documents`, `fix/calendar-export` and `docs/mobile-web-architecture`. Do not introduce permanent web/mobile branches or new branch names with a `codex/` prefix. Existing branches need not be renamed as part of this document edit.
 
 Release each target from a reviewed commit on `main`. Android publishes a separately versioned/signed native artifact through its selected distribution process; web builds/deploys to its selected web host after its own release gate. Record the commit and shared-package revisions for each. Optional tag conventions such as `mobile-vX.Y.Z` and `web-vX.Y.Z` can make independent versions explicit. Versioned BFF contracts and migration compatibility must allow an older installed mobile app to keep working if it ever uses that server; the current direct mobile transport does not require moving to the web BFF.
 
 Keep web production secrets only in the server hosting environment, and native signing keys in the mobile release secret store. Development/preview/production Google web callbacks and Android signing clients need their own deliberate configuration. Do not forward production student sessions into public previews, enable shared authenticated caching, or deploy automatically from unreviewed preview changes. Hosting, OAuth configuration, public release and repository visibility changes are separate actions from writing this architecture.
+
+
+## 22. First web implementation slice (23 October 2026)
+
+The user authorized implementation after the documentation update and selected a configurable version without an existing Microsoft registration. `apps/web` is a React/TypeScript Vite workspace with its own main/redirect HTML entries, responsive UI, clearly marked sample preview, projects/deadlines and timetable screens. Root Android entry points remain unchanged. Both apps currently consume the portable models/managers/adapters in root `src`; this is an explicit interim boundary, not a completed `packages/*` migration. Web production builds reject native runtime modules.
+
+The experimental direct-browser auth adapter uses MSAL Browser 5 with app-owned public client/tenant configuration, exact same-origin redirect validation and the dedicated redirect bridge. It exchanges the resulting Microsoft ID token only at the observed school endpoint, then delegates verified student-role/profile matching and renewal to the existing session manager. This is a candidate for validation, not evidence that Epitech accepts its audience. It is disabled by default and never reuses the school registration, portal storage or native bridge. A BFF is not selected or implemented.
+
+Web credentials and collected snapshots stay in memory and end on reload/page hide/sign-out. MSAL cache is also memory-only and cleared after each attempt; no persistent school refresh token or hosted account archive is introduced. School requests omit cookies, disallow redirects and bypass HTTP caches. OAuth popup/callback behavior, live school acceptance, refresh and browser account isolation still require interactive evidence.
+
+Web Google linking/manual Calendar export, documents and Drive remain pending; the UI labels these limits instead of offering fake connection/export actions. Existing Android integration and the complete roadmap above remain in scope. Separate web build checks are added alongside Android checks. See `docs/setup/web.md` and `docs/validation/web.md` for commands, exact configuration and the release blockers.

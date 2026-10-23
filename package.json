@@ -1,6 +1,6 @@
 {
   "name": "better-myepitech",
-  "description": "Android Epitech companion with projects, timetable and optional Google Calendar exports.",
+  "description": "Android and web Epitech companion with shared student-data collection.",
   "private": true,
   "version": "0.1.0",
   "main": "index.ts",
@@ -27,6 +27,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "bundle:android": "expo export --platform android"
-  }
+    "bundle:android": "expo export --platform android",
+    "web": "npm run dev --workspace @better-myepitech/web",
+    "build:web": "npm run build --workspace @better-myepitech/web",
+    "typecheck:web": "npm run typecheck --workspace @better-myepitech/web",
+    "preview:web": "npm run preview --workspace @better-myepitech/web"
+  },
+  "workspaces": [
+    "apps/web"
+  ]
 }

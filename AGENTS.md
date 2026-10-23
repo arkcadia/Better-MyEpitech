@@ -8,3 +8,6 @@
 - Preserve origin, challenge, cancellation, account-isolation and storage-order guarantees when modifying authentication.
 - Run `npm run typecheck`, `npm test` and `npm run bundle:android` for authentication changes. Record native/runtime checks separately from mocked checks.
 - Do not merge a pull request or change repository visibility as part of implementation.
+
+- Web implementation is now authorized. Read `docs/setup/web.md` and `docs/validation/web.md`; authenticated web release remains gated on real Microsoft/Epitech interoperability. Never replace the app-owned registration with the school’s client registration.
+- Run `npm run typecheck:web` and `npm run build:web` for web/shared changes. Keep the dedicated MSAL redirect bridge separate from the main app. Preview fixtures must stay clearly marked and must never trigger real exports.
