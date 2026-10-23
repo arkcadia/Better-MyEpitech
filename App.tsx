@@ -1,3 +1,5 @@
+import { fetch as expoFetch } from 'expo/fetch';
+import { DeviceDocuments } from './src/features/documents/DeviceDocuments';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -5,6 +7,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionManager, type SessionStatus } from './src/application/sessionManager';
 import { PortalSignIn } from './src/features/auth/PortalSignIn';
+import { PasswordSignIn } from './src/features/auth/PasswordSignIn';
 import { SchoolOverview } from './src/features/school/SchoolOverview';
 import { HttpEpitechAuthApi } from './src/providers/epitech/api';
 import { SecureSessionVault } from './src/storage/secureSessionVault';
@@ -22,7 +25,7 @@ const labels: Record<SessionStatus, string> = {
 };
 
 function LoginApp() {
-  const [session] = useState(() => new SessionManager(new HttpEpitechAuthApi(), new SecureSessionVault()));
+  const [session] = useState(() => new SessionManager(new HttpEpitechAuthApi(undefined, 20_000, expoFetch as typeof fetch), new SecureSessionVault()));
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const [portalOpen, setPortalOpen] = useState(false);
   const busy = ['restoring', 'connecting', 'checking', 'refreshing', 'disconnecting'].includes(snapshot.status);
@@ -78,6 +81,7 @@ function LoginApp() {
           {snapshot.status !== 'connected' && !busy ? (
             <Action label="Connect Epitech" onPress={() => setPortalOpen(true)} />
           ) : null}
+          {!snapshot.student ? <PasswordSignIn session={session} busy={busy} disabled={portalOpen} /> : null}
           {snapshot.status === 'connected' ? (
             <>
               <Action label="Check connection" onPress={() => void session.checkConnection()} />
@@ -88,7 +92,7 @@ function LoginApp() {
           {snapshot.status !== 'disconnected' ? <Action label="Disconnect from this device" secondary disabled={snapshot.status === 'disconnecting'} onPress={() => void session.disconnect()} /> : null}
           {busy ? <Text accessibilityLiveRegion="polite" style={styles.detail}>Please wait…</Text> : null}
         </View>
-        {snapshot.student && ['connected', 'checking', 'refreshing'].includes(snapshot.status) ? <SchoolOverview session={session} login={snapshot.student.login} /> : null}
+        {snapshot.student && ['connected', 'checking', 'refreshing'].includes(snapshot.status) ? <><SchoolOverview session={session} login={snapshot.student.login} /><DeviceDocuments session={session} login={snapshot.student.login} /></> : null}
         <View style={styles.note}>
           <Text style={styles.noteTitle}>Keep your dates together</Text>
           <Text style={styles.noteBody}>Browse accessible projects and timetable entries, then choose which dates to add to Google Calendar. Google connection is optional; school information stays on this device.</Text>

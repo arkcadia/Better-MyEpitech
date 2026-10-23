@@ -35,9 +35,17 @@ For an installed development build, `npm start` starts Metro. The phone must rea
 5. Google Calendar is optional. Follow [Google Calendar setup](docs/setup/google-calendar.md), connect your own Google account, and press **Add / update in Google Calendar** on a class or deadline.
 6. Test school **Check connection**, **Renew connection**, and **Disconnect from this device** separately from collection/export testing.
 
-Google setup requires an app-owned Cloud project, Calendar API and an Android OAuth client registered for the package/signing certificate. The app does not need school-side changes or a hosted server. Google Drive is not implemented in this slice.
+Google setup requires an app-owned Cloud project, Calendar API and an Android OAuth client registered for the package/signing certificate. The app does not need school-side changes or a hosted server. Google Drive is not implemented in this slice. Device ZIP downloads are available; see the document workflow below.
 
 Passwords are entered on official pages; the app has no password form. School tokens use SecureStore. Google tokens stay transient and Google Play services handles authorization caching. Core school browsing works without Google. Disconnect is local and does not delete previously exported Google events or claim global Microsoft sign-out.
+
+## Document library and incremental ZIP downloads
+
+Open **Documents** on web or **Your documents** on Android and refresh the index. Browse/filter by extension, select files, then choose **ZIP missing selected** or deliberately **ZIP all selected**. The ZIP groups PDFs, binaries, code and other files by type/extension. It tracks saved versions per school account on this device/browser so new or changed files remain eligible without re-fetching known saved versions. Saved IDs without revision markers are labeled version unknown and can be manually refreshed with ZIP all selected.
+
+History advances only after a successful streaming save or explicit saved-ZIP confirmation where the platform cannot verify delivery. It survives sign-out as account/document/version hashes and can be explicitly forgotten. Existing device ZIPs are never deleted by resetting history. Browser fallback is capped at 32 MiB; streaming/native batches at 2 GB.
+
+Real file downloads need approved exact host configuration and a verified school session. Personal files, historical project/activity resources, e-learning PDFs/text/subtitles and follow-up attachments have candidate collectors; full portal coverage and real device delivery still require live validation. See [document setup](docs/setup/documents.md), [source coverage](docs/api/documents.md), and [evidence](docs/validation/documents.md). The web sample workspace includes fictional ZIP files and an add-new-file scenario.
 
 ## Data coverage and limits
 
@@ -59,3 +67,7 @@ npx expo prebuild --platform android --no-install
 Tests use synthetic data and fake adapters. CI repeats these checks and compiles an x86_64 emulator development build, including the local Google Identity Services module. Native compilation is separate from actually installing and signing in.
 
 Keep personal records, tokens, full OAuth URLs, screenshots of student data, downloaded coursework and recovered school frontend bundles out of commits. A project license is still undecided; starter attribution remains in `docs/third-party/expo-template-LICENSE.txt`. Known dependency advisories are recorded in the validation documents; do not force an obsolete SDK downgrade to hide them.
+
+### Email/password alternative
+
+Web Connections and the Android sign-in screen now offer **Use email and password** through the school’s external-account endpoint. Ordinary Microsoft student credential support remains unproven; Microsoft-only accounts must keep using Microsoft/the portal. The app never saves the password and still requires a verified student profile. See [setup and live-validation limits](docs/setup/email-password.md).
